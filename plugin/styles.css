@@ -1,0 +1,809 @@
+/* ChronoCCG plugin styles */
+
+/* ---- Card tile ---- */
+.chrono-card-tile {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 8px 12px;
+	border-radius: 12px;
+	background: var(--background-primary);
+	max-width: 210px;
+	vertical-align: top;
+	margin: 2px;
+	transition: transform 0.12s ease, box-shadow 0.12s ease;
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+	border: 1px solid var(--background-modifier-border);
+}
+.theme-dark .chrono-card-tile {
+	box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+.chrono-card-tile:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+.theme-dark .chrono-card-tile:hover {
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+.chrono-card-tile-visual {
+	position: relative;
+	border-radius: 10px;
+	overflow: hidden;
+	line-height: 0;
+	box-shadow:
+		0 4px 16px rgba(0, 0, 0, 0.12),
+		0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+.theme-dark .chrono-card-tile-visual {
+	box-shadow:
+		0 6px 22px rgba(0, 0, 0, 0.55),
+		0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.chrono-card-tile img {
+	max-width: 180px;
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.chrono-card-tile .chrono-card-img-full { max-width: 360px; }
+.chrono-card-tile .chrono-card-name {
+	font-weight: 600;
+	font-size: var(--font-ui-small);
+	text-align: center;
+	line-height: 1.25;
+	letter-spacing: 0.01em;
+}
+.chrono-card-tile .chrono-card-meta {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	text-align: center;
+	line-height: 1.35;
+	max-width: 188px;
+}
+.chrono-card-tile .chrono-card-text {
+	font-size: var(--font-ui-smaller);
+	margin-top: 4px;
+	max-width: 360px;
+	white-space: pre-wrap;
+}
+
+/* ---- Deck block ---- */
+.chrono-deck-block {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 14px;
+	padding: 16px 18px 20px;
+	background: linear-gradient(
+		165deg,
+		var(--background-secondary) 0%,
+		var(--background-primary) 48%,
+		var(--background-secondary) 100%
+	);
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+.theme-dark .chrono-deck-block {
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+.chrono-deck-block h4 {
+	margin: 0 0 6px 0;
+	font-size: 1.15em;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+}
+.chrono-deck-block h5 {
+	margin: 18px 0 10px 0;
+	padding-bottom: 4px;
+	font-size: var(--font-ui-small);
+	font-weight: 600;
+	color: var(--text-normal);
+	opacity: 0.85;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.chrono-deck-summary {
+	display: inline-block;
+	margin-top: 2px;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	background: var(--background-modifier-hover);
+}
+.chrono-deck-errors { color: var(--text-error); margin: 8px 0; font-size: var(--font-ui-small); }
+.chrono-deck-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px 10px;
+	align-items: flex-start;
+}
+.chrono-deck-grid .chrono-card-tile {
+	margin: 0;
+}
+/* Deck quantity: first token in meta line — no extra row under the art */
+.chrono-deck-qty-inline {
+	font-variant-numeric: tabular-nums;
+	font-weight: 700;
+	color: var(--interactive-accent);
+	white-space: nowrap;
+}
+
+/* ---- Card browser ---- */
+.chrono-card-browser {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding: 0;
+	height: 100%;
+	overflow: hidden;
+	background: var(--background-primary);
+}
+/* Everything below search: filters + status + results share remaining height */
+.chrono-browser-workspace {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+.chrono-browser-toolbar {
+	flex-shrink: 0;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+.chrono-browser-toolbar-inner {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+.chrono-browser-search {
+	width: 100%;
+	padding: 8px 11px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.chrono-browser-search:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 22%, transparent);
+}
+.chrono-browser-search::placeholder {
+	color: var(--text-faint);
+}
+.chrono-filter-cost {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+.chrono-filter-cost--panel {
+	width: 100%;
+	flex-wrap: nowrap;
+	gap: 10px;
+}
+.chrono-filter-cost--panel .chrono-filter-num {
+	flex: 1 1 0;
+	min-width: 0;
+	width: auto;
+}
+.chrono-filter-label {
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-right: 2px;
+}
+.chrono-filter-cost-sep {
+	opacity: 0.45;
+	user-select: none;
+	flex-shrink: 0;
+}
+.chrono-filter-num {
+	min-width: 2.75rem;
+	padding: 6px 8px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+}
+.chrono-filter-num:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+.chrono-browser-filters-panel {
+	flex: 1 1 42%;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 10px 12px 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	scrollbar-gutter: stable;
+}
+.chrono-browser-section {
+	padding: 10px 11px;
+	border-radius: 10px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+}
+.chrono-browser-section-title {
+	font-size: 0.72em;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--text-muted);
+	margin: 0 0 8px 0;
+}
+.chrono-browser-dynamic-filters {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.chrono-browser-filter-actions {
+	display: flex;
+	justify-content: flex-end;
+	padding: 0 2px;
+}
+.chrono-browser-clear {
+	font-size: var(--font-ui-smaller);
+	padding: 4px 10px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.chrono-browser-clear:hover {
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 7%, var(--background-primary));
+}
+.chrono-browser-clear:disabled {
+	opacity: 0.42;
+	cursor: not-allowed;
+}
+.chrono-browser-clear:disabled:hover {
+	border-color: var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-muted);
+}
+.chrono-filter-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.chrono-filter-chip {
+	font-size: var(--font-ui-smaller);
+	padding: 5px 11px;
+	border-radius: 999px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-muted);
+	cursor: pointer;
+	transition:
+		background 0.1s ease,
+		border-color 0.1s ease,
+		color 0.1s ease;
+}
+.chrono-filter-chip:hover {
+	color: var(--text-normal);
+	border-color: var(--text-muted);
+}
+.chrono-filter-chip.is-active {
+	background: color-mix(in srgb, var(--interactive-accent) 14%, var(--background-primary));
+	color: var(--interactive-accent);
+	border-color: color-mix(in srgb, var(--interactive-accent) 35%, var(--background-modifier-border));
+	font-weight: 600;
+}
+.chrono-syndicate-btn {
+	font-size: var(--font-ui-smaller);
+	padding: 5px 11px;
+	border-radius: 999px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-muted);
+	cursor: pointer;
+	transition:
+		background 0.1s ease,
+		border-color 0.1s ease,
+		color 0.1s ease;
+}
+.chrono-syndicate-btn:hover {
+	color: var(--text-normal);
+	border-color: var(--text-muted);
+}
+.chrono-syndicate-btn.is-active {
+	background: color-mix(in srgb, var(--interactive-accent) 14%, var(--background-primary));
+	color: var(--interactive-accent);
+	border-color: color-mix(in srgb, var(--interactive-accent) 35%, var(--background-modifier-border));
+	font-weight: 600;
+}
+.chrono-browser-status {
+	flex-shrink: 0;
+	padding: 6px 12px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+}
+.chrono-browser-results {
+	flex: 1 1 58%;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	gap: 8px;
+	padding: 10px 12px 14px;
+}
+.chrono-browser-card {
+	cursor: pointer;
+	transition:
+		transform 0.08s ease,
+		box-shadow 0.08s ease;
+	border-radius: 12px;
+}
+.chrono-browser-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 42%, transparent);
+}
+.chrono-browser-card:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+/* ======================================================================
+   Syndicate colours (used as accents: borders, dots, inline refs)
+   ====================================================================== */
+body {
+	--chrono-lifeblood: #3f9e5a;
+	--chrono-sungrace: #c9952b;
+	--chrono-silence: #7c5cc4;
+	--chrono-singularity: #3b7dd8;
+	--chrono-splintergleam: #c94f8a;
+	--chrono-phasetide: #1f9aa3;
+	--chrono-neutral: var(--text-muted);
+}
+.theme-dark {
+	--chrono-lifeblood: #62c47e;
+	--chrono-sungrace: #e5b752;
+	--chrono-silence: #a68bea;
+	--chrono-singularity: #6aa5f2;
+	--chrono-splintergleam: #e57bae;
+	--chrono-phasetide: #4cc4cc;
+}
+.chrono-synd-lifeblood { --chrono-synd: var(--chrono-lifeblood); }
+.chrono-synd-sungrace { --chrono-synd: var(--chrono-sungrace); }
+.chrono-synd-silence { --chrono-synd: var(--chrono-silence); }
+.chrono-synd-singularity { --chrono-synd: var(--chrono-singularity); }
+.chrono-synd-splintergleam { --chrono-synd: var(--chrono-splintergleam); }
+.chrono-synd-phasetide { --chrono-synd: var(--chrono-phasetide); }
+.chrono-synd-none { --chrono-synd: var(--chrono-neutral); }
+
+.chrono-mono { font-family: var(--font-monospace); }
+.chrono-card-tile.is-clickable { cursor: pointer; }
+.chrono-card-tile .chrono-card-kw {
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	color: var(--chrono-synd, var(--text-muted));
+}
+.chrono-card-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: flex-start;
+}
+.chrono-unknown-card,
+.chrono-deck-hint {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	padding: 4px 0;
+}
+
+/* ---- Inline card references ---- */
+.chrono-card-ref {
+	color: var(--chrono-synd, var(--text-accent));
+	font-weight: 600;
+	cursor: help;
+	border-bottom: 1px dotted currentColor;
+}
+.chrono-card-ref-missing {
+	text-decoration: wavy underline var(--text-error);
+}
+
+/* ---- Hover popover ---- */
+.chrono-card-popover {
+	position: fixed;
+	left: var(--chrono-pop-x, 0);
+	top: var(--chrono-pop-y, 0);
+	z-index: var(--layer-popover);
+	width: 260px;
+	padding: 8px;
+	border-radius: 14px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: var(--shadow-l);
+	pointer-events: none;
+	opacity: 0;
+	transform: translateY(4px);
+	transition: opacity 0.1s ease, transform 0.1s ease;
+}
+.chrono-card-popover.is-visible {
+	opacity: 1;
+	transform: none;
+}
+.chrono-card-popover img {
+	width: 100%;
+	height: auto;
+	display: block;
+	border-radius: 10px;
+}
+.chrono-card-popover-info { padding: 6px 4px 2px; }
+.chrono-card-popover-name { font-weight: 700; }
+.chrono-card-popover-meta,
+.chrono-card-popover-kw,
+.chrono-card-popover-text {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin-top: 2px;
+}
+
+/* ---- Card detail modal ---- */
+.chrono-card-modal { width: min(720px, 94vw); }
+.chrono-card-modal-body {
+	display: flex;
+	gap: 20px;
+	align-items: flex-start;
+	flex-wrap: wrap;
+}
+.chrono-card-modal-img {
+	width: min(300px, 100%);
+	height: auto;
+	border-radius: 12px;
+	box-shadow: var(--shadow-s);
+}
+.chrono-card-modal-info {
+	flex: 1 1 220px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.chrono-card-modal-info h3 {
+	margin: 0;
+	color: var(--chrono-synd, var(--text-normal));
+}
+.chrono-card-modal-meta,
+.chrono-card-modal-kw {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+.chrono-card-modal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+/* ---- Deck block: header, chips, issues, curve, list ---- */
+.chrono-deck-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.chrono-deck-actions {
+	display: flex;
+	gap: 2px;
+}
+.chrono-icon-btn { padding: 4px 6px; }
+.chrono-deck-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 6px 0 4px;
+}
+.chrono-chip {
+	display: inline-block;
+	padding: 2px 9px;
+	border-radius: 999px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	background: var(--background-modifier-hover);
+	white-space: nowrap;
+}
+.chrono-chip.is-ok { color: var(--color-green); background: rgba(var(--color-green-rgb), 0.12); font-weight: 600; }
+.chrono-chip.is-bad { color: var(--color-red); background: rgba(var(--color-red-rgb), 0.12); font-weight: 600; }
+.chrono-chip.is-warn { color: var(--color-orange); }
+.chrono-chip-synd {
+	color: var(--chrono-synd);
+	background: color-mix(in srgb, var(--chrono-synd) 12%, transparent);
+}
+.chrono-deck-issues {
+	margin: 8px 0;
+	padding: 8px 10px;
+	border-radius: 8px;
+	background: var(--background-modifier-hover);
+	font-size: var(--font-ui-small);
+}
+.chrono-issue.is-error { color: var(--text-error); }
+.chrono-issue.is-warning { color: var(--color-orange); }
+.chrono-deck-footer {
+	margin-top: 16px;
+	padding-top: 10px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+.chrono-deck-footer-title {
+	font-size: 0.72em;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--text-muted);
+	margin-bottom: 4px;
+}
+
+.chrono-curve {
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	height: 92px;
+	max-width: 360px;
+	padding: 4px 0;
+}
+.chrono-curve-col {
+	flex: 1 1 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	height: 100%;
+}
+.chrono-curve-count {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	min-height: 1.2em;
+	font-variant-numeric: tabular-nums;
+}
+.chrono-curve-track {
+	flex: 1 1 auto;
+	width: 100%;
+	display: flex;
+	align-items: flex-end;
+}
+.chrono-curve-bar {
+	width: 100%;
+	height: var(--chrono-bar, 0%);
+	min-height: 2px;
+	border-radius: 4px 4px 1px 1px;
+	background: var(--interactive-accent);
+	opacity: 0.85;
+}
+.chrono-curve-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+.chrono-deck-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.chrono-deck-body.is-list .chrono-deck-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: 2px 14px;
+}
+.chrono-deck-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 6px 3px 0;
+	border-radius: 6px;
+	border-left: 3px solid var(--chrono-synd, var(--background-modifier-border));
+	background: var(--background-primary);
+	font-size: var(--font-ui-small);
+	min-height: 30px;
+}
+.chrono-deck-row:hover { background: var(--background-modifier-hover); }
+.chrono-deck-row.is-invalid { background: rgba(var(--color-red-rgb), 0.1); }
+.chrono-deck-row.is-empty {
+	border-left-style: dashed;
+	color: var(--text-faint);
+	padding-left: 10px;
+	font-style: italic;
+}
+.chrono-row-cost {
+	flex: 0 0 auto;
+	width: 22px;
+	height: 22px;
+	margin-left: 6px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	font-weight: 700;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-on-accent);
+	background: var(--chrono-synd, var(--interactive-accent));
+	font-variant-numeric: tabular-nums;
+}
+.chrono-row-name {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: help;
+}
+.chrono-row-type {
+	flex: 0 0 auto;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+.chrono-row-badge {
+	flex: 0 0 auto;
+	font-size: var(--font-ui-smaller);
+	font-weight: 700;
+	padding: 0 6px;
+	border-radius: 999px;
+	color: var(--chrono-synd);
+	background: color-mix(in srgb, var(--chrono-synd) 14%, transparent);
+}
+.chrono-row-count {
+	flex: 0 0 auto;
+	min-width: 2em;
+	text-align: right;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	color: var(--interactive-accent);
+}
+.chrono-row-btn { padding: 2px; }
+
+/* ---- Deck builder ---- */
+.chrono-builder {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+	gap: 0;
+	height: 100%;
+	overflow: hidden;
+}
+.workspace-leaf-content[data-type="chronoccg-deck-builder"] .view-content { padding: 0; }
+.chrono-builder-pool {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-right: 1px solid var(--background-modifier-border);
+}
+.chrono-builder-toolbar {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 10px 12px;
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.chrono-builder-toggle {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+.chrono-filter-chip[class*="chrono-synd-"].is-active {
+	color: var(--chrono-synd);
+	border-color: var(--chrono-synd);
+	background: color-mix(in srgb, var(--chrono-synd) 12%, var(--background-primary));
+}
+.chrono-builder-pool-grid {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 10px;
+	padding: 12px;
+	align-content: start;
+}
+.chrono-builder-card {
+	position: relative;
+	cursor: pointer;
+	max-width: none;
+	margin: 0;
+}
+.chrono-builder-card.is-maxed .chrono-card-tile-visual { opacity: 0.45; }
+.chrono-builder-incount {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	padding: 1px 8px;
+	border-radius: 999px;
+	font-size: var(--font-ui-smaller);
+	font-weight: 700;
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	box-shadow: var(--shadow-s);
+}
+.chrono-builder-incount.is-diver { background: var(--chrono-synd, var(--interactive-accent)); }
+.chrono-builder-diver-btn {
+	font-size: var(--font-ui-smaller);
+	padding: 2px 10px;
+	height: auto;
+	border-radius: 999px;
+}
+.chrono-builder-deck {
+	min-height: 0;
+	overflow-y: auto;
+	padding: 12px 14px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.chrono-builder-deck h5 {
+	margin: 14px 0 4px;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+.chrono-builder-head {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+.chrono-builder-name {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-weight: 700;
+	font-size: var(--font-ui-medium);
+}
+.chrono-builder-source {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+.chrono-builder-detach { margin-left: 8px; }
+
+/* Narrow windows & mobile: stack pool above deck */
+@media (max-width: 760px) {
+	.chrono-builder { grid-template-columns: 1fr; grid-template-rows: minmax(0, 55%) minmax(0, 45%); }
+	.chrono-builder-pool { border-right: none; border-bottom: 1px solid var(--background-modifier-border); }
+}
+.is-mobile .chrono-builder {
+	grid-template-columns: 1fr;
+	grid-template-rows: minmax(0, 55%) minmax(0, 45%);
+}
+.is-mobile .chrono-builder-pool { border-right: none; border-bottom: 1px solid var(--background-modifier-border); }
+.is-mobile .chrono-builder-pool-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+
+/* ---- Card suggester ---- */
+.chrono-suggest {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.chrono-suggest-img {
+	width: 36px;
+	height: auto;
+	border-radius: 4px;
+	flex: 0 0 auto;
+}
+.chrono-suggest-name {
+	font-weight: 600;
+	color: var(--chrono-synd, var(--text-normal));
+}
+.chrono-suggest-meta {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+/* ---- Prompts ---- */
+.chrono-prompt-field { flex-wrap: wrap; }
+.chrono-prompt-field .setting-item-control { width: 100%; flex: 1 1 100%; }
+.chrono-prompt-input { width: 100%; }
+
+/* ---- Mobile tweaks ---- */
+.is-mobile .chrono-card-tile img { max-width: 140px; }
+.is-mobile .chrono-deck-block { padding: 12px; }

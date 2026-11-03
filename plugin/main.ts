@@ -1,0 +1,316 @@
+import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { CardRepository } from "./src/data/CardRepository";
+import { DataSync } from "./src/data/DataSync";
+import { SEED_DATABASE } from "./src/data/cards.seed";
+import { Card, Deck } from "./src/data/types";
+import { ChronoSettings, ChronoSettingsTab, DEFAULT_SETTINGS } from "./src/settings/SettingsTab";
+import { registerCardCodeBlock } from "./src/markdown/CardCodeBlock";
+import { parseDeck, registerDeckCodeBlock } from "./src/markdown/DeckCodeBlock";
+import { findDeckBlockAt } from "./src/data/deckInput";
+import { registerInlineCardRefs } from "./src/markdown/InlineCardRef";
+import { CardBrowserView, VIEW_TYPE_CARD_BROWSER } from "./src/ui/CardBrowserView";
+import { CardDetailModal, hideCardPopover } from "./src/ui/CardPreview";
+import { CardSuggestModal } from "./src/ui/CardSuggestModal";
+import { DeckBuilderView, DeckSourceLink, emptyDeck, VIEW_TYPE_DECK_BUILDER } from "./src/ui/DeckBuilderView";
+import { ImportDeckModal } from "./src/ui/ImportDeckModal";
+import { TextPromptModal } from "./src/ui/TextPromptModal";
+import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind } from "./src/templates/Templates";
+
+export default class ChronoCCGPlugin extends Plugin {
+	settings!: ChronoSettings;
+	cards = new CardRepository();
+	sync!: DataSync;
+	templates = new NoteTemplates(this);
+
+	async onload(): Promise<void> {
+		await this.loadSettings();
+		this.sync = new DataSync(this);
+
+		// 1) seed first so things work offline
+		this.cards.load(SEED_DATABASE);
+
+		// 2) try cache, then optionally auto-refresh
+		const cached = await this.sync.readCache();
+		if (cached) this.cards.load(cached);
+
+		this.addSettingTab(new ChronoSettingsTab(this.app, this));
+
+		// Markdown rendering
+		registerCardCodeBlock(this);
+		registerDeckCodeBlock(this);
+		registerInlineCardRefs(this);
+
+		// Views
+		this.registerView(VIEW_TYPE_CARD_BROWSER, (leaf: WorkspaceLeaf) => new CardBrowserView(leaf, this));
+		this.registerView(VIEW_TYPE_DECK_BUILDER, (leaf: WorkspaceLeaf) => new DeckBuilderView(leaf, this));
+
+		this.addRibbonIcon("layers", "ChronoCCG: Open card browser", () => this.activateCardBrowser());
+		this.addRibbonIcon("swords", "ChronoCCG: Open deck builder", () => this.activateDeckBuilder());
+
+		this.registerCommands();
+
+		// Auto-refresh if stale (after layout is ready so startup stays fast)
+		this.app.workspace.onLayoutReady(() => {
+			if (this.shouldAutoRefresh()) this.refreshCardDatabase(true).catch(() => {});
+		});
+	}
+
+	onunload(): void {
+		hideCardPopover();
+	}
+
+	private registerCommands(): void {
+		this.addCommand({
+			id: "chrono-open-card-browser",
+			name: "Open card browser",
+			callback: () => this.activateCardBrowser(),
+		});
+
+		this.addCommand({
+			id: "open-deck-builder",
+			name: "Open deck builder",
+			callback: () => this.activateDeckBuilder(),
+		});
+
+		this.addCommand({
+			id: "new-deck-in-builder",
+			name: "Start a new deck in the builder",
+			callback: () => this.openDeckInBuilder(emptyDeck()),
+		});
+
+		this.addCommand({
+			id: "chrono-refresh-database",
+			name: "Refresh card database",
+			callback: () => this.refreshCardDatabase(),
+		});
+
+		this.addCommand({
+			id: "chrono-import-deck-code",
+			name: "Import deck from code…",
+			callback: () => new ImportDeckModal(this.app, this).open(),
+		});
+
+		this.addCommand({
+			id: "edit-deck-under-cursor",
+			name: "Edit deck block in builder",
+			editorCheckCallback: (checking, editor, ctx) => {
+				const range = findDeckBlockAt(editor.getValue().split("\n"), editor.getCursor().line);
+				if (!range || !ctx.file) return false;
+				if (!checking) {
+					const lines = editor.getValue().split("\n");
+					const deck = parseDeck(this, lines.slice(range.start + 1, range.end).join("\n"));
+					void this.openDeckInBuilder(deck, { path: ctx.file.path, lineStart: range.start, lineEnd: range.end });
+				}
+				return true;
+			},
+		});
+
+		this.addCommand({
+			id: "insert-card-reference",
+			name: "Insert inline card reference…",
+			editorCallback: (editor) =>
+				new CardSuggestModal(this.app, this, (card) => editor.replaceSelection(`\`chrono:${card.name}\``)).open(),
+		});
+
+		this.addCommand({
+			id: "insert-card-block",
+			name: "Insert card image block…",
+			editorCallback: (editor) =>
+				new CardSuggestModal(this.app, this, (card) => editor.replaceSelection("```chrono-card\n" + card.name + "\n```\n")).open(),
+		});
+
+		this.addCommand({
+			id: "show-card",
+			name: "Look up a card…",
+			callback: () => new CardSuggestModal(this.app, this, (card) => new CardDetailModal(this.app, this, card).open()).open(),
+		});
+
+		this.addCommand({
+			id: "add-card-to-builder",
+			name: "Add card to deck builder…",
+			callback: () => new CardSuggestModal(this.app, this, (card) => void this.addToBuilder(card, false)).open(),
+		});
+
+		this.addCommand({
+			id: "new-deck-note",
+			name: "New deck note",
+			callback: () =>
+				new TextPromptModal(this.app, {
+					title: "New deck note",
+					placeholder: "Deck name",
+					cta: "Create",
+					onSubmit: (name) => void this.templates.createDeckNote({ ...emptyDeck(), name }),
+				}).open(),
+		});
+
+		this.addCommand({
+			id: "new-matchup-note",
+			name: "New matchup note",
+			callback: () =>
+				new TextPromptModal(this.app, {
+					title: "New matchup note — opponent",
+					placeholder: "e.g. Sungrace aggro",
+					cta: "Create",
+					onSubmit: (opponent) => void this.templates.createMatchupNote(this.activeDeckLink(), opponent),
+				}).open(),
+		});
+
+		this.addCommand({
+			id: "new-tournament-report",
+			name: "New tournament report",
+			callback: () =>
+				new TextPromptModal(this.app, {
+					title: "New tournament report — event name",
+					placeholder: "e.g. Weekly Dive #12",
+					cta: "Create",
+					onSubmit: (event) => void this.templates.createTournamentNote(event, this.activeDeckLink(), this.activeDeck()),
+				}).open(),
+		});
+
+		this.addCommand({
+			id: "write-default-templates",
+			name: "Write default templates to the template folder",
+			callback: () => this.writeDefaultTemplates(),
+		});
+	}
+
+	// ---- views ---------------------------------------------------------------
+
+	async activateCardBrowser(): Promise<void> {
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(VIEW_TYPE_CARD_BROWSER)[0];
+		if (!leaf) {
+			leaf = workspace.getRightLeaf(false) ?? workspace.getLeaf(true);
+			await leaf.setViewState({ type: VIEW_TYPE_CARD_BROWSER, active: true });
+		}
+		await workspace.revealLeaf(leaf);
+		const view = leaf.view;
+		if (view instanceof CardBrowserView) view.refresh();
+	}
+
+	async activateDeckBuilder(): Promise<DeckBuilderView | null> {
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(VIEW_TYPE_DECK_BUILDER)[0];
+		if (!leaf) {
+			leaf = workspace.getLeaf("tab");
+			await leaf.setViewState({ type: VIEW_TYPE_DECK_BUILDER, active: true });
+		}
+		await workspace.revealLeaf(leaf);
+		const view = leaf.view;
+		return view instanceof DeckBuilderView ? view : null;
+	}
+
+	async openDeckInBuilder(deck: Deck, source?: DeckSourceLink): Promise<void> {
+		const copy: Deck = { name: deck.name, divers: deck.divers.slice(), entries: deck.entries.map((e) => ({ ...e })) };
+		const view = await this.activateDeckBuilder();
+		if (view) view.loadDraft({ deck: copy, source });
+		else {
+			this.settings.builderDraft = { deck: copy, source };
+			await this.saveSettings();
+		}
+	}
+
+	async addToBuilder(card: Card, asDiver: boolean): Promise<void> {
+		const view = await this.activateDeckBuilder();
+		view?.addCard(card, asDiver);
+	}
+
+	// ---- helpers -------------------------------------------------------------
+
+	/** "[[Deck note]]" when the active note is a deck note, else "". */
+	private activeDeckLink(): string {
+		const file = this.app.workspace.getActiveFile();
+		if (!file) return "";
+		const type = this.app.metadataCache.getFileCache(file)?.frontmatter?.type;
+		return type === "chrono-deck" ? `[[${file.basename}]]` : "";
+	}
+
+	/** First chrono-deck block of the active markdown note, if any. */
+	private activeDeck(): Deck | undefined {
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view) return undefined;
+		const lines = view.editor.getValue().split("\n");
+		const start = lines.findIndex((l) => /^(`{3,}|~{3,})\s*chrono-deck\b/.test(l.trim()));
+		const range = start >= 0 ? findDeckBlockAt(lines, start) : null;
+		return range ? parseDeck(this, lines.slice(range.start + 1, range.end).join("\n")) : undefined;
+	}
+
+	private async writeDefaultTemplates(): Promise<void> {
+		const folder = this.settings.templateFolder || `${this.settings.notesFolder || "ChronoCCG"}/Templates`;
+		if (!this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder);
+		let written = 0;
+		for (const kind of Object.keys(TEMPLATE_FILE_NAMES) as TemplateKind[]) {
+			const path = `${folder}/${TEMPLATE_FILE_NAMES[kind]}`;
+			if (this.app.vault.getAbstractFileByPath(path) instanceof TFile) continue;
+			await this.app.vault.create(path, DEFAULT_TEMPLATES[kind]);
+			written++;
+		}
+		if (!this.settings.templateFolder) {
+			this.settings.templateFolder = folder;
+			await this.saveSettings();
+		}
+		new Notice(`ChronoCCG: wrote ${written} template(s) to ${folder}${written < 3 ? " (existing files kept)" : ""}.`);
+	}
+
+	async loadSettings(): Promise<void> {
+		const defaults = structuredClone(DEFAULT_SETTINGS);
+		this.settings = Object.assign(defaults, await this.loadData());
+		if ((this.settings.dataSource as string) === "chrono-db") {
+			this.settings.dataSource = "runeterra-ar";
+		}
+		const draft = this.settings.builderDraft;
+		if (!draft?.deck || !Array.isArray(draft.deck.divers) || !Array.isArray(draft.deck.entries)) {
+			this.settings.builderDraft = { deck: emptyDeck() };
+		}
+	}
+
+	async saveSettings(): Promise<void> {
+		await this.saveData(this.settings);
+	}
+
+	private shouldAutoRefresh(): boolean {
+		if (this.settings.dataSource === "bundled") return false;
+		if (this.settings.autoRefreshDays <= 0) return false;
+		const last = this.settings.lastSyncIso ? Date.parse(this.settings.lastSyncIso) : 0;
+		const ageDays = (Date.now() - last) / (1000 * 60 * 60 * 24);
+		return ageDays >= this.settings.autoRefreshDays;
+	}
+
+	async refreshCardDatabase(silent = false): Promise<void> {
+		if (this.settings.dataSource === "bundled") {
+			this.cards.load(SEED_DATABASE);
+			if (!silent) new Notice("ChronoCCG: using bundled seed data.");
+			this.refreshOpenViews();
+			return;
+		}
+		try {
+			const db = await this.sync.fetch({
+				id: this.settings.dataSource,
+				url: this.settings.customDataUrl,
+			});
+			if (!db.cards.length) throw new Error("the source returned no cards");
+			this.cards.load(db);
+			await this.sync.writeCache(db);
+			this.settings.lastSyncIso = new Date().toISOString();
+			await this.saveSettings();
+			if (!silent) new Notice(`ChronoCCG: loaded ${db.cards.length} cards from ${db.source}.`);
+			this.refreshOpenViews();
+		} catch (err) {
+			console.error("ChronoCCG refresh failed", err);
+			if (!silent) new Notice(`ChronoCCG refresh failed: ${(err as Error).message}`);
+		}
+	}
+
+	private refreshOpenViews(): void {
+		for (const type of [VIEW_TYPE_CARD_BROWSER, VIEW_TYPE_DECK_BUILDER]) {
+			for (const leaf of this.app.workspace.getLeavesOfType(type)) {
+				const v = leaf.view;
+				if (v instanceof CardBrowserView || v instanceof DeckBuilderView) v.refresh();
+			}
+		}
+		// Re-render notes so codeblocks pick up the new card data.
+		this.app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
+			if (leaf.view instanceof MarkdownView) leaf.view.previewMode.rerender(true);
+		});
+	}
+}
