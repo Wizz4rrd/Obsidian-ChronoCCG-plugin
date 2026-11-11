@@ -1,0 +1,56 @@
+name: Bug report
+description: Something doesn't work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: If it's about a deck or card block, paste the block (or the deck code) here.
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: Settings → Community plugins → ChronoCCG
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: obsidian-version
+    attributes:
+      label: Obsidian version
+      description: Settings → General
+      placeholder: "1.9.10"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Errors in the developer console
+      description: Optional. Open it with Cmd+Option+I (macOS) or Ctrl+Shift+I (Windows/Linux) and copy any red lines that mention ChronoCCG.
+      render: text
+  - type: markdown
+    attributes:
+      value: Please don't paste private notes. A small example that shows the problem is enough.
