@@ -55,8 +55,12 @@ test("parses plain lines with names and Divers", () => {
 
 test("parses a bare code and reports unknown names", () => {
 	assert.deepEqual(parseDeckSource("`" + SAMPLE + "`", () => undefined, JSON.parse).divers, [122, 258]);
-	const p = parseDeckSource("3 Nope", () => undefined, JSON.parse);
+	const p = parseDeckSource("D Ghost\n3 Nope", () => undefined, JSON.parse);
 	assert.match(p.errors[0], /not found/);
+	assert.deepEqual(p.unknown, [
+		{ ref: "Ghost", count: 1, diver: true },
+		{ ref: "Nope", count: 3, diver: false },
+	]);
 });
 
 test("validates deck rules", () => {

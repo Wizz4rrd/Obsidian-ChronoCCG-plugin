@@ -1,29 +1,23 @@
-# ChronoCCG — Obsidian Plugin
+# ChronoCCG for Obsidian
 
-Browse cards, build and validate decks, and keep deck, matchup and tournament notes for the [ChronoCCG](https://playchrono.com/) card game, all inside Obsidian.
+An Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wanted to keep my decks, matchup notes and tournament reports in my vault, with real cards in them instead of plain text, so I made this.
 
-> Open `tstvault/` in Obsidian and start at **ChronoCCG/Welcome.md** for a guided tour of every feature.
+You can try it with the test vault: open `TstVault/` in Obsidian and start with `ChronoCCG/Welcome.md`.
 
-## Features
+## What it does
 
-- **Inline card references.** `` `chrono:Hush Now` `` renders as a coloured card name with a hover preview (tap on mobile).
-- **Card image blocks.** Put one card per line in a `chrono-card` block. Add a `full` line for large cards.
-- **Deck blocks.** A `chrono-deck` block takes a deck code, a readable list (`D <diver>` / `<count> <card>`) or YAML. Each block shows:
-  - legality against the [official rules](https://playchrono.com/rules): 2 Divers (Agents) + 40 cards, max 3 copies, only the Divers' syndicates, no Diver copies in the main deck
-  - energy curve, type and syndicate breakdown
-  - a grid/list toggle
-  - buttons to **copy the deck code**, **export** (markdown table, text list, JSON, deck block) and **edit in the deck builder**
-- **Deck builder** (a full tab):
-  - card pool with search, syndicate, type and cost filters, plus "only cards playable with my Divers"
-  - Diver slots, +/- controls and live validation
-  - import a deck code; save back to the note the deck came from, or create a new deck note
-- **Card browser** side panel: filter by cost, syndicate, spell speed, rarity, type, keyword and set. Clicking a card lets you insert it, add it to the builder, set it as Diver or view details.
-- **Note templates** for decks, matchups and tournament reports (with frontmatter that works with Dataview). You can override them with your own templates.
-- **Card data** synced from [runeterra.ar](https://www.runeterra.ar/chrono/home), cached in the vault and auto-refreshed (every 7 days by default). A custom JSON source is also supported.
+- Inline card references: write `` `chrono:Hush Now` `` and you get the card name in its syndicate colour, with a preview on hover. Click it to open the card. Works in Reading view and Live Preview.
+- Card images: put card names in a `chrono-card` block, one per line. Add a line with `full` if you want them big.
+- Decks: a `chrono-deck` block takes a deck code, a simple list or YAML (examples below). It checks the deck against the [rules](https://playchrono.com/rules) (2 Divers, 40 cards, max 3 copies, only your Divers' syndicates), shows the energy curve and the type/syndicate split, and has buttons to copy the code, export the deck or open it in the builder.
+- Deck builder: opens in its own tab. Filter the card pool (you can show only the cards your Divers can play), add/remove cards, and save the deck back to the note it came from or to a new note.
+- Card browser: a side panel with filters for cost, syndicate, spell speed, rarity, type, keyword and set. Click a card to insert it, add it to the builder or see the details.
+- Templates for deck, matchup and tournament notes. The frontmatter works with Dataview. You can replace them with your own.
 
-Deck codes are compatible with the game and runeterra.ar. The encoder output was checked byte-for-byte against runeterra.ar's own deck-code generator.
+Deck codes work both ways with the game and with runeterra.ar.
 
-### Syntax cheat sheet
+If a card can't be found (typo, or a card that isn't in the data yet), it shows up as a grey "?" card instead of disappearing.
+
+### Syntax
 
 ````markdown
 Inline: `chrono:Shattersmith` or `chrono:258`
@@ -56,75 +50,97 @@ cards:
 
 ### Commands
 
-| Command | What it does |
+| Command | |
 | --- | --- |
-| Open card browser / Open deck builder | Open the views (also available as ribbon icons) |
-| Start a new deck in the builder | Clear the builder |
-| Edit deck block in builder | With the cursor inside a `chrono-deck` block |
-| Import deck from code… | Open the code in the builder, insert it in a note, or create a deck note |
-| Insert inline card reference… / Insert card image block… | Fuzzy card picker |
-| Look up a card… / Add card to deck builder… | Fuzzy card picker |
-| New deck note / New matchup note / New tournament report | Create a note from a template |
-| Write default templates to the template folder | Editable copies of the built-in templates |
-| Refresh card database | Re-download card data |
+| Open card browser / Open deck builder | Also in the ribbon |
+| Start a new deck in the builder | Clears the builder |
+| Edit deck block in builder | Put the cursor inside a `chrono-deck` block first |
+| Import deck from code… | Open it in the builder, insert it in the note, or make a deck note |
+| Insert inline card reference… / Insert card image block… | |
+| Look up a card… / Add card to deck builder… | |
+| New deck note / New matchup note / New tournament report | |
+| Write default templates to the template folder | Copies the templates so you can edit them |
+| Refresh card database | Downloads the card list again |
 
 ### Templates
 
-Notes go to `ChronoCCG/Decks`, `ChronoCCG/Matchups` and `ChronoCCG/Tournaments`. You can change the root folder in settings. To customise a template, run **Write default templates…** and edit the files it creates. Available placeholders: `{{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}`.
+New notes go in `ChronoCCG/Decks`, `ChronoCCG/Matchups` and `ChronoCCG/Tournaments` (you can change the root folder in the settings). To edit the templates, run "Write default templates to the template folder" and change the files it creates. Placeholders: `{{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}`.
 
-### Known limitations
+### Limitations
 
-- runeterra.ar does not publish card rules text, so text search only covers name, type, keywords, syndicate, stats and set. The rules text is printed on the in-game card image shown in previews.
-- In Live Preview, inline `chrono:` references keep their code styling. The hover preview still works, and Reading view shows the coloured name.
+- runeterra.ar doesn't have the cards' rules text, so search only looks at name, type, keywords, syndicate, stats and set. You can still read the text on the card image.
+- Desktop only for now (see below).
 
-## Repository layout
+## Network use
+
+The plugin only goes online to get the card list and the card images. It doesn't send anything about you or your vault.
+
+| When | What | Where |
+| --- | --- | --- |
+| At startup, if the card list is older than the refresh interval (7 days by default) | Downloads the card list | `www.runeterra.ar` |
+| When you run "Refresh card database" | Same | `www.runeterra.ar` |
+| The first time a card image is shown | Downloads the image | `cdn.runeterra.ar` |
+| If you set a custom data URL | Downloads the card list | Your URL |
+
+The card list (`card-cache.json`) and the images (`image-cache/`) are saved in the plugin folder, so each image is only downloaded once and everything you've already seen works offline. You can turn off saving images or clear them in the settings. Set the auto-refresh interval to `0` to turn off the automatic download. If you pick the "Bundled" source it never downloads anything, but you only get a placeholder card.
+
+## Plans
+
+- Mobile support
+- Card rules text in search (runeterra.ar doesn't have it)
+- Matchup stats (win rates per deck and opponent) from your matchup notes
+
+## Development
+
+Everything runs in Docker (`node:20-alpine`), so you don't need Node installed. `./plugin` is mounted in the container, so the build output ends up in `plugin/`.
+
+```bash
+make install     # npm install (builds the image the first time)
+make dev         # rebuild on save
+make build       # production build
+make test        # unit tests
+make lint        # ESLint with Obsidian's plugin rules
+make link        # symlink plugin/ into TstVault/.obsidian/plugins/chronoccg
+make shell       # shell in the container
+make help        # all targets
+```
+
+After `make link`, turn on ChronoCCG in Settings → Community plugins in the test vault. Reload the plugin after each build, or use the Hot Reload plugin.
 
 ```
 .
-├── manifest.json / versions.json   # Root copies read by Obsidian's community catalog
-├── plugin/                          # The Obsidian plugin (TypeScript source, build config)
+├── manifest.json / versions.json   copies for Obsidian's plugin list
+├── plugin/
 │   ├── main.ts
 │   ├── src/
-│   │   ├── data/       types, CardRepository, DataSync, DeckCodec, DeckParser, DeckRules, DeckExport
-│   │   ├── markdown/   chrono-card / chrono-deck blocks, inline `chrono:` refs
-│   │   ├── ui/         CardBrowserView, DeckBuilderView, previews, modals
-│   │   ├── templates/  note templates
+│   │   ├── data/       card data, deck codes, parsing, rules, export
+│   │   ├── markdown/   chrono-card / chrono-deck blocks, inline refs
+│   │   ├── ui/         card browser, deck builder, previews, modals
+│   │   ├── templates/
 │   │   └── settings/
-│   ├── tests/          unit tests (node:test) for codec, parser, rules
+│   ├── tests/
 │   └── scripts/        test runner, version bump
-├── tstvault/           # Test vault (plugin is symlinked in) with demo notes in ChronoCCG/
-├── .github/workflows/  # CI + tag-triggered release
-├── Dockerfile / docker-compose.yml / Makefile
+├── TstVault/           test vault with example notes
+├── .github/workflows/  CI and release
+└── Dockerfile / docker-compose.yml / Makefile
 ```
 
-## Development (Docker, no host Node required)
+### Releasing
 
-All commands run in a `node:20-alpine` container with `./plugin` bind-mounted, so generated files appear directly under `plugin/`.
+1. `cd plugin && npm version patch` (or `minor` / `major`). This updates both `manifest.json` files and `versions.json`.
+2. Push the tag (e.g. `1.0.1`, no `v`). The Release workflow builds, runs the tests and makes a draft GitHub release with `main.js`, `manifest.json` and `styles.css`.
+3. First release only: submit the repo to [obsidian-releases](https://github.com/obsidianmd/obsidian-releases).
 
-```bash
-make install     # npm install into ./plugin/node_modules (builds the image the first time)
-make dev         # watch + rebuild on every save (Ctrl-C to stop)
-make build       # production build (typecheck + minify)
-make test        # unit tests
-make link        # symlink plugin/ into tstvault/.obsidian/plugins/chronoccg
-make shell       # shell inside the container
-make help        # list all targets
-```
+## Use of AI
 
-After `make link`, enable **ChronoCCG** in Settings → Community plugins inside the test vault, and reload after each rebuild (or install the *Hot Reload* plugin).
-
-## Releasing
-
-1. `cd plugin && npm version patch` (or `minor` / `major`). This syncs `plugin/manifest.json`, the root `manifest.json` and `versions.json`.
-2. Push the tag (for example `1.0.1`, with no `v` prefix). The **Release** workflow builds, tests and creates a draft GitHub release with `main.js`, `manifest.json` and `styles.css`.
-3. To publish, submit the repo to [obsidian-releases](https://github.com/obsidianmd/obsidian-releases) (first release only).
+I used AI coding tools (Claude Code) while building this plugin, the same way I'd use any other dev tool. I decided what the plugin does and how it works, reviewed the code, and tested it in my own vault. If you find something that looks off, please open an issue.
 
 ## Credits
 
-- [Chrono CCG](https://playchrono.com/), the game
-- [Runeterra.ar](https://www.runeterra.ar/chrono/home) and [Chrono-DB](https://chrono-db.net/), community card data and images
+- [ChronoCCG](https://playchrono.com/), the game
+- [runeterra.ar](https://www.runeterra.ar/chrono/home), for the card data and images
 
-This is an unofficial fan project, not affiliated with the makers of ChronoCCG.
+This is an unofficial fan project. It isn't affiliated with or endorsed by Chronoverse Games Studio, who make ChronoCCG. Card names, images and text belong to them. The MIT license only covers the plugin's code.
 
 ## License
 

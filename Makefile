@@ -4,9 +4,9 @@
 COMPOSE ?= docker compose
 # Always anchor paths to the Makefile's directory, never the caller's $PWD.
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-VAULT_PLUGIN_DIR := $(ROOT)/tstvault/.obsidian/plugins/chronoccg
+VAULT_PLUGIN_DIR := $(ROOT)/TstVault/.obsidian/plugins/chronoccg
 
-.PHONY: help image install build dev test shell clean link unlink reinstall
+.PHONY: help image install build dev test lint shell clean link unlink reinstall
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make <target>\n\nTargets:\n"} \
@@ -27,6 +27,9 @@ dev: ## Watch mode — rebuilds plugin/main.js on save (Ctrl-C to stop)
 test: ## Run unit tests (deck codec, parser, rules)
 	$(COMPOSE) run --rm shell -c "npm test"
 
+lint: ## Lint with Obsidian's community-plugin rules (eslint-plugin-obsidianmd)
+	$(COMPOSE) run --rm shell -c "npm run lint"
+
 shell: ## Open a shell inside the dev container
 	$(COMPOSE) run --rm shell
 
@@ -36,7 +39,7 @@ clean: ## Remove build artifacts and node_modules
 reinstall: clean install ## Wipe and reinstall dependencies
 
 link: ## Symlink plugin/ into the test vault so Obsidian can load it
-	mkdir -p $(ROOT)/tstvault/.obsidian/plugins
+	mkdir -p $(ROOT)/TstVault/.obsidian/plugins
 	@if [ -e "$(VAULT_PLUGIN_DIR)" ] || [ -L "$(VAULT_PLUGIN_DIR)" ]; then \
 		echo "$(VAULT_PLUGIN_DIR) already exists — run 'make unlink' first if you want to recreate it."; \
 	else \

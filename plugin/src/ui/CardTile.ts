@@ -1,6 +1,6 @@
 import { Card } from "../data/types";
 import { ChronoSettings } from "../settings/SettingsTab";
-import { resolveCardImageUrl } from "../utils/imageUrl";
+import { setCardImage } from "../utils/imageUrl";
 
 export interface RenderCardOptions {
 	size?: "thumb" | "full";
@@ -20,13 +20,8 @@ export function renderCardTile(
 	tile.dataset.cardId = String(card.id);
 
 	const visual = tile.createDiv({ cls: "chrono-card-tile-visual" });
-	const img = visual.createEl("img", {
-		attr: {
-			src: resolveCardImageUrl(card, settings),
-			alt: card.name,
-			loading: "lazy",
-		},
-	});
+	const img = visual.createEl("img", { attr: { alt: card.name, loading: "lazy" } });
+	setCardImage(img, card, settings);
 	if (opts.size === "full") img.addClass("chrono-card-img-full");
 
 	tile.createDiv({ cls: "chrono-card-name", text: card.name });
@@ -54,6 +49,26 @@ export function renderCardTile(
 		tile.createDiv({ cls: "chrono-card-text", text: card.text });
 	}
 
+	return tile;
+}
+
+export const UNKNOWN_CARD_HINT = 'Not in the card database. Check the spelling, or run "Refresh card database".';
+
+/** Placeholder tile for a card reference that doesn't match any card. */
+export function renderUnknownCardTile(
+	parent: HTMLElement,
+	label: string,
+	opts: { deckCount?: number; badge?: string } = {},
+): HTMLElement {
+	const tile = parent.createDiv({ cls: ["chrono-card-tile", "chrono-synd-none", "is-unknown"], attr: { "aria-label": UNKNOWN_CARD_HINT } });
+	tile.createDiv({ cls: "chrono-card-tile-visual chrono-unknown-visual", text: "?" });
+	tile.createDiv({ cls: "chrono-card-name", text: label });
+	const meta = tile.createDiv({ cls: "chrono-card-meta" });
+	if (opts.deckCount !== undefined && opts.deckCount >= 1) {
+		meta.createSpan({ cls: "chrono-deck-qty-inline", text: `×${opts.deckCount}` });
+		meta.append(" • ");
+	}
+	meta.append(opts.badge ? `Unknown ${opts.badge.toLowerCase()}` : "Unknown card");
 	return tile;
 }
 

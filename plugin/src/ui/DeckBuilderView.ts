@@ -7,7 +7,7 @@ import { unwrapDeckCode } from "../data/deckInput";
 import { Card, Deck, Syndicate, SYNDICATES } from "../data/types";
 import { attachCardPreview } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
-import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, showExportMenu } from "./DeckWidgets";
+import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, renderUnknownDeckRow, showExportMenu } from "./DeckWidgets";
 import { TextPromptModal } from "./TextPromptModal";
 
 export const VIEW_TYPE_DECK_BUILDER = "chronoccg-deck-builder";
@@ -82,7 +82,7 @@ export class DeckBuilderView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
-		this.plugin.saveSettings();
+		await this.plugin.saveSettings();
 	}
 
 	/** Re-render both panes (cheap: a few hundred cards). */
@@ -300,7 +300,7 @@ export class DeckBuilderView extends ItemView {
 		for (const id of deck.divers) {
 			const card = this.plugin.cards.getById(id);
 			if (!card) {
-				divers.createDiv({ cls: "chrono-unknown-card", text: `? Unknown Diver #${id}` });
+				renderUnknownDeckRow(divers, `#${id}`, { badge: "Diver", onRemove: () => this.removeDiver(id) });
 				continue;
 			}
 			renderDeckRow(this.plugin, divers, card, { badge: "Diver", onRemove: () => this.removeDiver(id) });
@@ -315,7 +315,7 @@ export class DeckBuilderView extends ItemView {
 		for (const e of sortEntries(deck.entries, this.plugin.cards)) {
 			const card = this.plugin.cards.getById(e.id);
 			if (!card) {
-				list.createDiv({ cls: "chrono-unknown-card", text: `? Unknown card #${e.id} ×${e.count}` });
+				renderUnknownDeckRow(list, `#${e.id}`, { count: e.count, onRemove: () => this.removeOne(e.id) });
 				continue;
 			}
 			renderDeckRow(this.plugin, list, card, {

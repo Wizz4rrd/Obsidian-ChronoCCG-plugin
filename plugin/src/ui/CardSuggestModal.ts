@@ -1,7 +1,7 @@
 import { App, FuzzyMatch, FuzzySuggestModal } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { Card } from "../data/types";
-import { resolveCardImageUrl } from "../utils/imageUrl";
+import { setCardImage } from "../utils/imageUrl";
 import { cardMetaLine } from "./CardPreview";
 import { syndicateClass } from "./CardTile";
 
@@ -29,10 +29,8 @@ export class CardSuggestModal extends FuzzySuggestModal<Card> {
 	renderSuggestion(match: FuzzyMatch<Card>, el: HTMLElement): void {
 		const card = match.item;
 		el.addClass("chrono-suggest");
-		el.createEl("img", {
-			cls: "chrono-suggest-img",
-			attr: { src: resolveCardImageUrl(card, this.plugin.settings), alt: "", loading: "lazy" },
-		});
+		const img = el.createEl("img", { cls: "chrono-suggest-img", attr: { alt: "", loading: "lazy" } });
+		setCardImage(img, card, this.plugin.settings);
 		const text = el.createDiv({ cls: "chrono-suggest-text" });
 		text.createDiv({ cls: ["chrono-suggest-name", syndicateClass(card)], text: card.name });
 		text.createDiv({ cls: "chrono-suggest-meta", text: cardMetaLine(card) });

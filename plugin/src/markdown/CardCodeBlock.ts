@@ -1,6 +1,6 @@
 import type ChronoCCGPlugin from "../../main";
 import { attachCardPreview } from "../ui/CardPreview";
-import { renderCardTile } from "../ui/CardTile";
+import { renderCardTile, renderUnknownCardTile } from "../ui/CardTile";
 
 /**
  * ```chrono-card
@@ -29,10 +29,7 @@ export function registerCardCodeBlock(plugin: ChronoCCGPlugin): void {
 		for (const ref of refs.slice(0, 50)) {
 			const card = plugin.cards.resolve(ref);
 			if (!card) {
-				row.createDiv({
-					cls: "chrono-unknown-card",
-					text: `chrono-card: no card matches "${ref}". Run "ChronoCCG: Refresh card database" if you haven't.`,
-				});
+				renderUnknownCardTile(row, ref);
 				continue;
 			}
 			const tile = renderCardTile(row, card, plugin.settings, { size: isFull ? "full" : "thumb", showText: isFull });

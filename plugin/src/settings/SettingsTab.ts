@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { DataSourceId } from "../data/DataSync";
 import { BuilderDraft, emptyDeck } from "../ui/DeckBuilderView";
+import { imageCache } from "../utils/ImageCache";
 
 export type ImageSize = "180" | "360" | "full";
 
@@ -18,6 +19,8 @@ export interface ChronoSettings {
 	/** Prefer framed card art (stats on image) or full-bleed illustration. */
 	cardImageStyle: CardImageStyle;
 	autoRefreshDays: number;
+	/** Keep downloaded card images in the plugin folder. */
+	cacheImages: boolean;
 	lastSyncIso: string | null;
 	/** Default rendering of ```chrono-deck blocks. */
 	deckView: DeckView;
@@ -37,6 +40,7 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 	imageSize: "180",
 	cardImageStyle: "game",
 	autoRefreshDays: 7,
+	cacheImages: true,
 	lastSyncIso: null,
 	deckView: "grid",
 	hoverPreviews: true,
@@ -120,6 +124,34 @@ export class ChronoSettingsTab extends PluginSettingTab {
 						}
 					}),
 			);
+
+		new Setting(containerEl)
+			.setName("Save card images")
+			.setDesc("Download each card image once and keep it in the plugin folder, so cards also show offline.")
+			.addToggle((t) =>
+				t.setValue(s.cacheImages).onChange(async (v) => {
+					s.cacheImages = v;
+					await save();
+				}),
+			);
+
+		const cacheSetting = new Setting(containerEl)
+			.setName("Clear saved images")
+			.setDesc("Counting saved images…")
+			.addButton((b) =>
+				b.setButtonText("Clear").onClick(async () => {
+					b.setDisabled(true);
+					try {
+						await imageCache.clear();
+						this.display();
+					} finally {
+						b.setDisabled(false);
+					}
+				}),
+			);
+		void imageCache.stats().then(({ files, bytes }) => {
+			cacheSetting.setDesc(`${files} image(s), ${(bytes / 1024 / 1024).toFixed(1)} MB.`);
+		});
 
 		new Setting(containerEl).setName("Display").setHeading();
 

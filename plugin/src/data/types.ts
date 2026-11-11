@@ -20,9 +20,10 @@ export const SYNDICATES: Syndicate[] = [
 ];
 
 /** Agents are permanents (and can be Divers); Actions are Slow / Fast / Immediate. */
-export type CardType = "Agent" | "Action" | "Timeline" | string;
+// `string & {}` keeps editor autocomplete for the known values.
+export type CardType = "Agent" | "Action" | "Timeline" | (string & {});
 
-export type Rarity = "Common" | "Rare" | "Divergent" | "Lost" | string;
+export type Rarity = "Common" | "Rare" | "Divergent" | "Lost" | (string & {});
 
 export interface Card {
 	/** Numeric id used by runeterra.ar image URLs. */

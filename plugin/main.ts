@@ -14,6 +14,7 @@ import { CardSuggestModal } from "./src/ui/CardSuggestModal";
 import { DeckBuilderView, DeckSourceLink, emptyDeck, VIEW_TYPE_DECK_BUILDER } from "./src/ui/DeckBuilderView";
 import { ImportDeckModal } from "./src/ui/ImportDeckModal";
 import { TextPromptModal } from "./src/ui/TextPromptModal";
+import { imageCache } from "./src/utils/ImageCache";
 import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind } from "./src/templates/Templates";
 
 export default class ChronoCCGPlugin extends Plugin {
@@ -25,6 +26,7 @@ export default class ChronoCCGPlugin extends Plugin {
 	async onload(): Promise<void> {
 		await this.loadSettings();
 		this.sync = new DataSync(this);
+		imageCache.init(this);
 
 		// 1) seed first so things work offline
 		this.cards.load(SEED_DATABASE);
@@ -49,9 +51,14 @@ export default class ChronoCCGPlugin extends Plugin {
 
 		this.registerCommands();
 
-		// Auto-refresh if stale (after layout is ready so startup stays fast)
+		// Auto-refresh if stale (after layout is ready so startup stays fast).
+		// Without a cache only the placeholder seed is loaded, so report failures.
 		this.app.workspace.onLayoutReady(() => {
-			if (this.shouldAutoRefresh()) this.refreshCardDatabase(true).catch(() => {});
+			if (this.shouldAutoRefresh()) {
+				this.refreshCardDatabase(true, !cached).catch(() => {});
+			} else if (!cached && this.settings.dataSource !== "bundled") {
+				this.notifyNoCardData();
+			}
 		});
 	}
 
@@ -61,7 +68,7 @@ export default class ChronoCCGPlugin extends Plugin {
 
 	private registerCommands(): void {
 		this.addCommand({
-			id: "chrono-open-card-browser",
+			id: "open-card-browser",
 			name: "Open card browser",
 			callback: () => this.activateCardBrowser(),
 		});
@@ -79,13 +86,13 @@ export default class ChronoCCGPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "chrono-refresh-database",
+			id: "refresh-database",
 			name: "Refresh card database",
 			callback: () => this.refreshCardDatabase(),
 		});
 
 		this.addCommand({
-			id: "chrono-import-deck-code",
+			id: "import-deck-code",
 			name: "Import deck from code…",
 			callback: () => new ImportDeckModal(this.app, this).open(),
 		});
@@ -221,7 +228,7 @@ export default class ChronoCCGPlugin extends Plugin {
 	private activeDeckLink(): string {
 		const file = this.app.workspace.getActiveFile();
 		if (!file) return "";
-		const type = this.app.metadataCache.getFileCache(file)?.frontmatter?.type;
+		const type: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter?.type;
 		return type === "chrono-deck" ? `[[${file.basename}]]` : "";
 	}
 
@@ -254,7 +261,7 @@ export default class ChronoCCGPlugin extends Plugin {
 
 	async loadSettings(): Promise<void> {
 		const defaults = structuredClone(DEFAULT_SETTINGS);
-		this.settings = Object.assign(defaults, await this.loadData());
+		this.settings = Object.assign(defaults, (await this.loadData()) as Partial<ChronoSettings> | null);
 		if ((this.settings.dataSource as string) === "chrono-db") {
 			this.settings.dataSource = "runeterra-ar";
 		}
@@ -276,7 +283,21 @@ export default class ChronoCCGPlugin extends Plugin {
 		return ageDays >= this.settings.autoRefreshDays;
 	}
 
-	async refreshCardDatabase(silent = false): Promise<void> {
+	/** Notice shown when only the placeholder seed is loaded. */
+	private notifyNoCardData(reason?: string): void {
+		new Notice(
+			"ChronoCCG: card data is not loaded yet" +
+				(reason ? ` (${reason})` : "") +
+				'. Run "Refresh card database" when you are online.',
+			10_000,
+		);
+	}
+
+	/**
+	 * @param silent no notices on success or failure
+	 * @param reportFailure show a notice on failure even when silent
+	 */
+	async refreshCardDatabase(silent = false, reportFailure = false): Promise<void> {
 		if (this.settings.dataSource === "bundled") {
 			this.cards.load(SEED_DATABASE);
 			if (!silent) new Notice("ChronoCCG: using bundled seed data.");
@@ -298,6 +319,7 @@ export default class ChronoCCGPlugin extends Plugin {
 		} catch (err) {
 			console.error("ChronoCCG refresh failed", err);
 			if (!silent) new Notice(`ChronoCCG refresh failed: ${(err as Error).message}`);
+			else if (reportFailure) this.notifyNoCardData((err as Error).message);
 		}
 	}
 

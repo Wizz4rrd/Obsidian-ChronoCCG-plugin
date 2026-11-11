@@ -1,5 +1,11 @@
 import { Card } from "../data/types";
 import { ChronoSettings } from "../settings/SettingsTab";
+import { imageCache } from "./ImageCache";
+
+/** Show `card`'s image in `img`, from the local image cache when enabled. */
+export function setCardImage(img: HTMLImageElement, card: Card, settings: ChronoSettings): void {
+	imageCache.setSrc(img, resolveCardImageUrl(card, settings));
+}
 
 export function resolveCardImageUrl(card: Card, settings: ChronoSettings): string {
 	const style = settings.cardImageStyle ?? "game";

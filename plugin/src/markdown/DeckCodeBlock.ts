@@ -5,9 +5,17 @@ import { parseDeckSource, ParsedDeck } from "../data/DeckParser";
 import { deckStats, validateDeck } from "../data/DeckRules";
 import { Card } from "../data/types";
 import { attachCardPreview } from "../ui/CardPreview";
-import { renderCardTile } from "../ui/CardTile";
+import { renderCardTile, renderUnknownCardTile } from "../ui/CardTile";
 import { DeckSourceLink } from "../ui/DeckBuilderView";
-import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, showExportMenu } from "../ui/DeckWidgets";
+import {
+	copyDeckCode,
+	renderCurve,
+	renderDeckChips,
+	renderDeckRow,
+	renderIssues,
+	renderUnknownDeckRow,
+	showExportMenu,
+} from "../ui/DeckWidgets";
 
 /**
  * ```chrono-deck
@@ -79,31 +87,42 @@ function renderDeck(
 			if (view === "list") renderDeckRow(plugin, parent, card, { count, badge });
 			else tile(plugin, parent, card, count);
 		};
+		const putUnknown = (parent: HTMLElement, label: string, count?: number, badge?: string) => {
+			if (view === "list") renderUnknownDeckRow(parent, label, { count, badge });
+			else renderUnknownCardTile(parent, label, { deckCount: count, badge });
+		};
+		const unknownDivers = deck.unknown.filter((u) => u.diver);
 		const container = (cls = "") => body.createDiv({ cls: `${view === "list" ? "chrono-deck-list" : "chrono-deck-grid"} ${cls}`.trim() });
 
-		if (deck.divers.length) {
-			body.createEl("h5", { text: `Divers (${deck.divers.length})` });
+		const diverCount = deck.divers.length + unknownDivers.length;
+		if (diverCount) {
+			body.createEl("h5", { text: `Divers (${diverCount})` });
 			const grid = container("chrono-deck-divers");
 			for (const id of deck.divers) {
 				const card = plugin.cards.getById(id);
 				if (card) put(grid, card, undefined, "Diver");
-				else grid.createDiv({ cls: "chrono-unknown-card", text: `? Unknown Diver #${id}` });
+				else putUnknown(grid, `#${id}`, undefined, "Diver");
 			}
+			for (const u of unknownDivers) putUnknown(grid, u.ref, undefined, "Diver");
 		}
 
 		const groups: Record<string, Array<{ card: Card; count: number }>> = {};
+		const unknown: Array<{ label: string; count: number }> = [];
 		for (const e of sortEntries(deck.entries, plugin.cards)) {
 			const card = plugin.cards.getById(e.id);
-			if (!card) {
-				body.createDiv({ cls: "chrono-unknown-card", text: `? Unknown card #${e.id} ×${e.count}` });
-				continue;
-			}
-			(groups[card.type] ??= []).push({ card, count: e.count });
+			if (card) (groups[card.type] ??= []).push({ card, count: e.count });
+			else unknown.push({ label: `#${e.id}`, count: e.count });
 		}
+		for (const u of deck.unknown) if (!u.diver) unknown.push({ label: u.ref, count: u.count });
 		for (const g of Object.keys(groups).sort()) {
 			body.createEl("h5", { text: `${g}s (${groups[g].reduce((s, e) => s + e.count, 0)})` });
 			const grid = container();
 			for (const e of groups[g]) put(grid, e.card, e.count);
+		}
+		if (unknown.length) {
+			body.createEl("h5", { text: `Unknown cards (${unknown.reduce((s, e) => s + e.count, 0)})` });
+			const grid = container();
+			for (const u of unknown) putUnknown(grid, u.label, u.count);
 		}
 	};
 	renderBody();

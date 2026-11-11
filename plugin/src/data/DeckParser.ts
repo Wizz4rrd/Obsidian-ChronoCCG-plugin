@@ -1,6 +1,7 @@
 import { decodeDeck } from "./DeckCodec";
 import { looksLikeDeckCode, unwrapDeckCode } from "./deckInput";
 import { Deck, DeckEntry } from "./types";
+import { asOptionalText, asText } from "../utils/text";
 
 /**
  * Parses the body of a ```chrono-deck block. Supported bodies:
@@ -23,6 +24,14 @@ import { Deck, DeckEntry } from "./types";
  */
 export interface ParsedDeck extends Deck {
 	errors: string[];
+	/** Cards given by name that aren't in the card database, kept so they can be shown as placeholders. */
+	unknown: UnknownRef[];
+}
+
+export interface UnknownRef {
+	ref: string;
+	count: number;
+	diver: boolean;
 }
 
 /** Resolves an id or card name to a card id. */
@@ -35,7 +44,8 @@ export const MAX_DECK_ENTRIES = 2_000;
 
 export function parseDeckSource(source: string, resolve: CardRefResolver, parseYaml: YamlParser): ParsedDeck {
 	const errors: string[] = [];
-	const empty = (msg: string): ParsedDeck => ({ name: "", divers: [], entries: [], errors: [msg] });
+	const unknown: UnknownRef[] = [];
+	const empty = (msg: string): ParsedDeck => ({ name: "", divers: [], entries: [], errors: [msg], unknown: [] });
 	const trimmed = source.trim();
 	if (!trimmed) return empty("Empty deck.");
 	if (trimmed.length > MAX_DECK_BLOCK_CHARS) {
@@ -49,29 +59,31 @@ export function parseDeckSource(source: string, resolve: CardRefResolver, parseY
 	if (/^[a-zA-Z_]+\s*:/.test(trimmed) && !isPlainWithHeader(lines)) {
 		let data: YamlDeck;
 		try {
-			data = (parseYaml(trimmed) ?? {}) as YamlDeck;
+			data = ((parseYaml(trimmed) as YamlDeck | null) ?? {});
 		} catch (e) {
 			return empty(`YAML parse error: ${(e as Error).message}`);
 		}
 		const cardsList = Array.isArray(data.cards) ? data.cards : [];
-		if (data.code && cardsList.length === 0) {
-			return fromCode(unwrapDeckCode(String(data.code)), data.name ? String(data.name) : undefined, errors);
+		const code = asOptionalText(data.code);
+		if (code && cardsList.length === 0) {
+			return fromCode(unwrapDeckCode(code), asOptionalText(data.name), errors);
 		}
 		const divers = toRefList(data.divers)
-			.map((ref) => resolveOrError(ref, resolve, errors, "Diver"))
+			.map((ref) => resolveOrError(ref, resolve, errors, unknown, { diver: true, count: 1 }))
 			.filter((id): id is number => id !== undefined);
 		const entries: DeckEntry[] = [];
 		for (const raw of cardsList.slice(0, MAX_DECK_ENTRIES)) {
-			const entry = yamlEntry(raw, resolve, errors);
+			const entry = yamlEntry(raw, resolve, errors, unknown);
 			if (entry) entries.push(entry);
 		}
 		if (cardsList.length > MAX_DECK_ENTRIES) errors.push(`Too many deck entries (max ${MAX_DECK_ENTRIES}).`);
 		return {
-			name: data.name ? String(data.name) : "",
-			code: data.code ? String(data.code) : undefined,
+			name: asOptionalText(data.name) ?? "",
+			code,
 			divers,
 			entries: mergeEntries(entries),
 			errors,
+			unknown,
 		};
 	}
 
@@ -89,7 +101,7 @@ export function parseDeckSource(source: string, resolve: CardRefResolver, parseY
 		}
 		const diver = t.match(/^(?:d|diver)\s*[:\s]\s*(.+)$/i);
 		if (diver) {
-			const id = resolveOrError(diver[1], resolve, errors, "Diver");
+			const id = resolveOrError(diver[1], resolve, errors, unknown, { diver: true, count: 1 });
 			if (id !== undefined) divers.push(id);
 			continue;
 		}
@@ -98,14 +110,14 @@ export function parseDeckSource(source: string, resolve: CardRefResolver, parseY
 			errors.push(`Could not parse line "${t}" (expected "<count> <id or name>" or "D <diver>").`);
 			continue;
 		}
-		const id = resolveOrError(m[2], resolve, errors, "Card");
+		const id = resolveOrError(m[2], resolve, errors, unknown, { diver: false, count: Number(m[1]) });
 		if (id !== undefined) entries.push({ count: Number(m[1]), id });
 		if (entries.length >= MAX_DECK_ENTRIES) {
 			errors.push(`Too many deck entries (max ${MAX_DECK_ENTRIES}).`);
 			break;
 		}
 	}
-	return { name, divers, entries: mergeEntries(entries), errors };
+	return { name, divers, entries: mergeEntries(entries), errors, unknown };
 }
 
 interface YamlDeck {
@@ -129,36 +141,43 @@ function fromCode(code: string, nameOverride: string | undefined, errors: string
 			divers: d.divers,
 			entries: d.entries,
 			errors: [...errors, ...d.warnings],
+			unknown: [],
 		};
 	} catch (e) {
-		return { name: nameOverride ?? "", divers: [], entries: [], errors: [...errors, `Deck code parse error: ${(e as Error).message}`] };
+		return {
+			name: nameOverride ?? "",
+			divers: [],
+			entries: [],
+			errors: [...errors, `Deck code parse error: ${(e as Error).message}`],
+			unknown: [],
+		};
 	}
 }
 
 function toRefList(value: unknown): string[] {
 	if (value === undefined || value === null) return [];
-	const arr = Array.isArray(value) ? value : String(value).split(",");
-	return arr.map((v) => String(v).trim()).filter(Boolean);
+	const arr: unknown[] = Array.isArray(value) ? value : asText(value).split(",");
+	return arr.map((v) => asText(v).trim()).filter(Boolean);
 }
 
-function yamlEntry(raw: unknown, resolve: CardRefResolver, errors: string[]): DeckEntry | null {
+function yamlEntry(raw: unknown, resolve: CardRefResolver, errors: string[], unknown: UnknownRef[]): DeckEntry | null {
 	if (typeof raw === "string" || typeof raw === "number") {
 		const s = String(raw).trim();
 		const m = s.match(/^(\d+)\s*[x×]?\s+(.+)$/i);
 		const ref = m ? m[2] : s;
 		const count = m ? Number(m[1]) : 1;
-		const id = resolveOrError(ref, resolve, errors, "Card");
+		const id = resolveOrError(ref, resolve, errors, unknown, { diver: false, count });
 		return id !== undefined && count > 0 ? { id, count } : null;
 	}
 	if (raw && typeof raw === "object") {
 		const r = raw as Record<string, unknown>;
-		const ref = r.id ?? r.name ?? r.card;
+		const ref = asOptionalText(r.id ?? r.name ?? r.card);
 		if (ref === undefined) {
 			errors.push(`Deck entry is missing an id or name: ${JSON.stringify(raw)}`);
 			return null;
 		}
-		const id = resolveOrError(String(ref), resolve, errors, "Card");
 		const count = Number(r.count ?? 1);
+		const id = resolveOrError(ref, resolve, errors, unknown, { diver: false, count: Number.isFinite(count) ? count : 1 });
 		if (id === undefined) return null;
 		if (!Number.isFinite(count) || count <= 0) {
 			errors.push(`Invalid count for card ${ref}.`);
@@ -169,11 +188,20 @@ function yamlEntry(raw: unknown, resolve: CardRefResolver, errors: string[]): De
 	return null;
 }
 
-function resolveOrError(ref: string, resolve: CardRefResolver, errors: string[], what: string): number | undefined {
+function resolveOrError(
+	ref: string,
+	resolve: CardRefResolver,
+	errors: string[],
+	unknown: UnknownRef[],
+	slot: { diver: boolean; count: number },
+): number | undefined {
 	const trimmed = ref.trim();
 	if (/^\d+$/.test(trimmed)) return Number(trimmed);
 	const id = resolve(trimmed);
-	if (id === undefined) errors.push(`${what} "${trimmed}" not found.`);
+	if (id === undefined) {
+		errors.push(`${slot.diver ? "Diver" : "Card"} "${trimmed}" not found.`);
+		unknown.push({ ref: trimmed, ...slot });
+	}
 	return id;
 }
 

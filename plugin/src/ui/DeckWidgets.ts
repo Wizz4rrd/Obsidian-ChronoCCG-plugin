@@ -4,7 +4,7 @@ import { deckCode, toCodeBlock, toJson, toMarkdownTable, toPlainList } from "../
 import { CURVE_MAX, DeckIssue, DeckStats, DIVER_COUNT, MAIN_DECK_SIZE } from "../data/DeckRules";
 import { Card, Deck, SYNDICATES } from "../data/types";
 import { attachCardPreview } from "./CardPreview";
-import { syndicateClass } from "./CardTile";
+import { syndicateClass, UNKNOWN_CARD_HINT } from "./CardTile";
 
 /** Small bar chart of the main deck's energy curve. */
 export function renderCurve(parent: HTMLElement, stats: DeckStats): HTMLElement {
@@ -89,6 +89,29 @@ export interface DeckRowOptions {
 	onRemove?: () => void;
 	/** Highlight the row as violating a rule. */
 	invalid?: boolean;
+}
+
+/** List row for a card reference that doesn't match any card. */
+export function renderUnknownDeckRow(
+	parent: HTMLElement,
+	label: string,
+	opts: Pick<DeckRowOptions, "count" | "badge" | "onRemove"> = {},
+): HTMLElement {
+	const row = parent.createDiv({ cls: ["chrono-deck-row", "chrono-synd-none", "is-unknown"], attr: { "aria-label": UNKNOWN_CARD_HINT } });
+	row.createSpan({ cls: "chrono-row-cost", text: "?" });
+	row.createSpan({ cls: "chrono-row-name", text: label });
+	row.createSpan({ cls: "chrono-row-type", text: "Unknown" });
+	if (opts.badge) row.createSpan({ cls: "chrono-row-badge", text: opts.badge });
+	if (opts.onRemove) {
+		const b = row.createEl("button", { cls: "clickable-icon chrono-row-btn", attr: { "aria-label": "Remove one" } });
+		setIcon(b, "minus");
+		b.addEventListener("click", (e) => {
+			e.stopPropagation();
+			opts.onRemove?.();
+		});
+	}
+	if (opts.count !== undefined) row.createSpan({ cls: "chrono-row-count", text: `×${opts.count}` });
+	return row;
 }
 
 /** Compact "cost | name | ×n" row used by list views and the deck builder. */

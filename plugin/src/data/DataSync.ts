@@ -1,5 +1,6 @@
 import { Plugin, requestUrl } from "obsidian";
 import { Card, CardDatabase, Syndicate, SYNDICATES } from "./types";
+import { asOptionalText, asText } from "../utils/text";
 
 export type DataSourceId = "bundled" | "runeterra-ar" | "custom";
 
@@ -100,9 +101,9 @@ export class DataSync {
 		const id = Number(r.cardId ?? r.cardCode);
 		if (!Number.isFinite(id)) return null;
 		const regionRefs = Array.isArray(r.regionRefs)
-			? (r.regionRefs as unknown[]).map(String)
+			? (r.regionRefs as unknown[]).map(asText)
 			: r.regionRef
-				? [String(r.regionRef)]
+				? [asText(r.regionRef)]
 				: [];
 		const syndicates = this.normalizeSyndicates(regionRefs);
 		const assets = (r.assets as Array<{ fullAbsolutePath?: string; gameAbsolutePath?: string }>) ?? [];
@@ -112,41 +113,37 @@ export class DataSync {
 		const imageUrl = game ?? fullArt;
 		const imageUrlFull = fullArt && game && fullArt !== game ? fullArt : undefined;
 		const keywords = Array.isArray(r.keywordRefs)
-			? (r.keywordRefs as unknown[]).map(String)
+			? (r.keywordRefs as unknown[]).map(asText)
 			: Array.isArray(r.keywords)
-				? (r.keywords as unknown[]).map(String)
+				? (r.keywords as unknown[]).map(asText)
 				: [];
 		const subtypes = Array.isArray(r.subtypes)
-			? (r.subtypes as unknown[]).map(String)
+			? (r.subtypes as unknown[]).map(asText)
 			: r.subtype
-				? [String(r.subtype)]
+				? [asText(r.subtype)]
 				: [];
-		const spellRaw = r.spellSpeedRef ?? r.spellSpeed;
-		const spellSpeed =
-			spellRaw !== undefined && spellRaw !== null && String(spellRaw).trim() !== ""
-				? String(spellRaw).trim()
-				: undefined;
+		const spellSpeed = asOptionalText(r.spellSpeedRef ?? r.spellSpeed);
 		const attack = toFiniteNumber(r.attack);
 		const health = toFiniteNumber(r.health);
-		const textParts = [r.descriptionRaw, r.description, r.levelupDescriptionRaw, r.levelupDescription].filter(
-			(v) => v !== undefined && v !== null && String(v).trim() !== "",
-		);
+		const textParts = [r.descriptionRaw, r.description, r.levelupDescriptionRaw, r.levelupDescription]
+			.map(asText)
+			.filter((v) => v.trim() !== "");
 		return {
 			id,
-			name: String(r.name ?? `Card ${id}`),
+			name: asText(r.name) || `Card ${id}`,
 			syndicates,
-			type: String(r.typeRef ?? r.type ?? "Unit"),
+			type: asText(r.typeRef ?? r.type) || "Unit",
 			cost: Number(r.cost ?? 0) || 0,
 			attack,
 			health,
-			rarity: String(r.rarityRef ?? r.rarity ?? "Common"),
+			rarity: asText(r.rarityRef ?? r.rarity) || "Common",
 			keywords,
 			subtypes: subtypes.length ? subtypes : undefined,
 			spellSpeed,
-			text: textParts.length ? textParts.map(String).join("\n") : "",
-			flavor: r.flavorText ? String(r.flavorText) : undefined,
-			set: r.set ? String(r.set) : undefined,
-			artist: r.artistName ? String(r.artistName) : undefined,
+			text: textParts.join("\n"),
+			flavor: asOptionalText(r.flavorText),
+			set: asOptionalText(r.set),
+			artist: asOptionalText(r.artistName),
 			collectible: r.collectible === false ? false : undefined,
 			imageUrl,
 			imageUrlFull,
@@ -177,39 +174,35 @@ export class DataSync {
 		const r = raw as Record<string, unknown>;
 		const id = Number(r.id ?? r.cardId ?? r.code);
 		if (!Number.isFinite(id)) return null;
-		const name = String(r.name ?? r.title ?? `Card ${id}`);
+		const name = asText(r.name ?? r.title) || `Card ${id}`;
 		const syndicates = this.normalizeSyndicates(r.syndicates ?? r.syndicate ?? r.region ?? r.regions);
 		const attack = toFiniteNumber(r.attack);
 		const health = toFiniteNumber(r.health);
 		const subtypes = Array.isArray(r.subtypes)
-			? r.subtypes.map(String)
+			? r.subtypes.map(asText)
 			: r.subtype
-				? [String(r.subtype)]
+				? [asText(r.subtype)]
 				: [];
-		const spellRaw = r.spellSpeed ?? r.spellSpeedRef;
-		const spellSpeed =
-			spellRaw !== undefined && spellRaw !== null && String(spellRaw).trim() !== ""
-				? String(spellRaw).trim()
-				: undefined;
+		const spellSpeed = asOptionalText(r.spellSpeed ?? r.spellSpeedRef);
 		return {
 			id,
 			name,
 			syndicates,
-			type: String(r.type ?? "Unit"),
+			type: asText(r.type) || "Unit",
 			cost: Number(r.cost ?? 0) || 0,
 			attack,
 			health,
-			rarity: String(r.rarity ?? "Common"),
-			keywords: Array.isArray(r.keywords) ? r.keywords.map(String) : [],
+			rarity: asText(r.rarity) || "Common",
+			keywords: Array.isArray(r.keywords) ? r.keywords.map(asText) : [],
 			subtypes: subtypes.length ? subtypes : undefined,
 			spellSpeed,
-			text: String(r.text ?? r.description ?? ""),
-			flavor: r.flavor ? String(r.flavor) : undefined,
-			set: r.set ? String(r.set) : undefined,
-			artist: r.artist ? String(r.artist) : undefined,
+			text: asText(r.text ?? r.description),
+			flavor: asOptionalText(r.flavor),
+			set: asOptionalText(r.set),
+			artist: asOptionalText(r.artist),
 			collectible: r.collectible === false ? false : undefined,
-			imageUrl: sanitizeRemoteImageUrl(r.imageUrl ? String(r.imageUrl) : undefined),
-			imageUrlFull: sanitizeRemoteImageUrl(r.imageUrlFull ? String(r.imageUrlFull) : undefined),
+			imageUrl: sanitizeRemoteImageUrl(asOptionalText(r.imageUrl)),
+			imageUrlFull: sanitizeRemoteImageUrl(asOptionalText(r.imageUrlFull)),
 		};
 	}
 
@@ -217,7 +210,7 @@ export class DataSync {
 		const arr = Array.isArray(value) ? value : value ? [value] : [];
 		const out: Syndicate[] = [];
 		for (const v of arr) {
-			const name = String(v);
+			const name = asText(v);
 			const match = SYNDICATES.find((s) => s.toLowerCase() === name.toLowerCase());
 			if (match) out.push(match);
 		}
@@ -227,7 +220,7 @@ export class DataSync {
 	// ---- cache (vault-relative under the plugin folder) -------------------
 
 	private cachePath(): string {
-		const dir = this.plugin.manifest.dir ?? `.obsidian/plugins/${this.plugin.manifest.id}`;
+		const dir = this.plugin.manifest.dir ?? `${this.plugin.app.vault.configDir}/plugins/${this.plugin.manifest.id}`;
 		return `${dir}/${CACHE_FILE}`;
 	}
 

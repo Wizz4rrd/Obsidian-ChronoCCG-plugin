@@ -1,7 +1,7 @@
 import { App, Modal, Platform } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { Card } from "../data/types";
-import { resolveCardImageUrl } from "../utils/imageUrl";
+import { setCardImage } from "../utils/imageUrl";
 import { syndicateClass } from "./CardTile";
 
 /**
@@ -13,15 +13,14 @@ const POPOVER_CLASS = "chrono-card-popover";
 
 export function showCardPopover(plugin: ChronoCCGPlugin, card: Card, evt: MouseEvent): void {
 	if (!plugin.settings.hoverPreviews || Platform.isMobile) return;
-	const doc = (evt.target as Node | null)?.ownerDocument ?? document;
+	const doc = (evt.target as Node | null)?.ownerDocument ?? activeDocument;
 	let pop = doc.body.querySelector<HTMLElement>(`.${POPOVER_CLASS}`);
 	if (!pop) pop = doc.body.createDiv({ cls: POPOVER_CLASS });
 	if (pop.dataset.cardId !== String(card.id)) {
 		pop.empty();
 		pop.dataset.cardId = String(card.id);
-		pop.createEl("img", {
-			attr: { src: resolveCardImageUrl(card, { ...plugin.settings, imageSize: "full" }), alt: card.name },
-		});
+		const img = pop.createEl("img", { attr: { alt: card.name } });
+		setCardImage(img, card, { ...plugin.settings, imageSize: "full" });
 		const info = pop.createDiv({ cls: "chrono-card-popover-info" });
 		info.createDiv({ cls: "chrono-card-popover-name", text: card.name });
 		info.createDiv({ cls: "chrono-card-popover-meta", text: cardMetaLine(card) });
@@ -32,7 +31,7 @@ export function showCardPopover(plugin: ChronoCCGPlugin, card: Card, evt: MouseE
 	positionPopover(pop, evt);
 }
 
-export function hideCardPopover(doc: Document = document): void {
+export function hideCardPopover(doc: Document = activeDocument): void {
 	doc.body.querySelector(`.${POPOVER_CLASS}`)?.removeClass("is-visible");
 }
 
@@ -84,10 +83,8 @@ export class CardDetailModal extends Modal {
 		this.modalEl.addClass("chrono-card-modal");
 		contentEl.empty();
 		const wrap = contentEl.createDiv({ cls: "chrono-card-modal-body" });
-		wrap.createEl("img", {
-			cls: "chrono-card-modal-img",
-			attr: { src: resolveCardImageUrl(card, { ...this.plugin.settings, imageSize: "full" }), alt: card.name },
-		});
+		const img = wrap.createEl("img", { cls: "chrono-card-modal-img", attr: { alt: card.name } });
+		setCardImage(img, card, { ...this.plugin.settings, imageSize: "full" });
 		const info = wrap.createDiv({ cls: "chrono-card-modal-info" });
 		info.createEl("h3", { text: card.name, cls: syndicateClass(card) });
 		info.createDiv({ cls: "chrono-card-modal-meta", text: cardMetaLine(card) });

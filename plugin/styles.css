@@ -400,7 +400,6 @@ body {
 	gap: 10px;
 	align-items: flex-start;
 }
-.chrono-unknown-card,
 .chrono-deck-hint {
 	font-size: var(--font-ui-small);
 	color: var(--text-muted);
@@ -414,8 +413,44 @@ body {
 	cursor: help;
 	border-bottom: 1px dotted currentColor;
 }
-.chrono-card-ref-missing {
+.chrono-card-ref.is-unknown {
+	color: var(--text-muted);
+	font-weight: normal;
+	border-bottom: none;
 	text-decoration: wavy underline var(--text-error);
+}
+
+/* ---- Unknown cards ---- */
+.chrono-card-tile.is-unknown {
+	opacity: 0.75;
+	cursor: help;
+}
+.chrono-card-tile.is-unknown:hover {
+	transform: none;
+}
+.chrono-card-tile-visual.chrono-unknown-visual {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 180px;
+	max-width: 100%;
+	aspect-ratio: 5 / 7;
+	border: 2px dashed var(--background-modifier-border);
+	box-shadow: none;
+	color: var(--text-faint);
+	font-size: 3em;
+	line-height: 1;
+}
+.chrono-deck-row.is-unknown {
+	color: var(--text-muted);
+	font-style: italic;
+	cursor: help;
+}
+
+/* Card image still downloading into the local cache. */
+img.is-loading {
+	min-height: 120px;
+	background: var(--background-modifier-hover);
 }
 
 /* ---- Hover popover ---- */
