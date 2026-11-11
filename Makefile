@@ -4,7 +4,7 @@
 COMPOSE ?= docker compose
 # Always anchor paths to the Makefile's directory, never the caller's $PWD.
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-VAULT_PLUGIN_DIR := $(ROOT)/TstVault/.obsidian/plugins/chronoccg
+VAULT_PLUGIN_DIR := $(ROOT)/example-vault/.obsidian/plugins/chronoccg
 
 .PHONY: help image install build dev test lint shell clean link unlink reinstall
 
@@ -39,7 +39,7 @@ clean: ## Remove build artifacts and node_modules
 reinstall: clean install ## Wipe and reinstall dependencies
 
 link: ## Symlink plugin/ into the test vault so Obsidian can load it
-	mkdir -p $(ROOT)/TstVault/.obsidian/plugins
+	mkdir -p $(ROOT)/example-vault/.obsidian/plugins
 	@if [ -e "$(VAULT_PLUGIN_DIR)" ] || [ -L "$(VAULT_PLUGIN_DIR)" ]; then \
 		echo "$(VAULT_PLUGIN_DIR) already exists — run 'make unlink' first if you want to recreate it."; \
 	else \

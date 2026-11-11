@@ -2,7 +2,7 @@
 
 An Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wanted to keep my decks, matchup notes and tournament reports in my vault, with real cards in them instead of plain text, so I made this.
 
-You can try it with the test vault: open `TstVault/` in Obsidian and start with `ChronoCCG/Welcome.md`.
+If you cloned the repo, you can try it in the example vault: open `example-vault/` in Obsidian and start with `ChronoCCG/Welcome.md`.
 
 ## What it does
 
@@ -100,12 +100,12 @@ make dev         # rebuild on save
 make build       # production build
 make test        # unit tests
 make lint        # ESLint with Obsidian's plugin rules
-make link        # symlink plugin/ into TstVault/.obsidian/plugins/chronoccg
+make link        # symlink plugin/ into example-vault/.obsidian/plugins/chronoccg
 make shell       # shell in the container
 make help        # all targets
 ```
 
-After `make link`, turn on ChronoCCG in Settings → Community plugins in the test vault. Reload the plugin after each build, or use the Hot Reload plugin.
+After `make link`, turn on ChronoCCG in Settings → Community plugins in the example vault. Reload the plugin after each build, or use the Hot Reload plugin.
 
 ```
 .
@@ -120,7 +120,7 @@ After `make link`, turn on ChronoCCG in Settings → Community plugins in the te
 │   │   └── settings/
 │   ├── tests/
 │   └── scripts/        test runner, version bump
-├── TstVault/           test vault with example notes
+├── example-vault/      vault for testing, with example notes (not shipped)
 ├── .github/workflows/  CI and release
 └── Dockerfile / docker-compose.yml / Makefile
 ```
