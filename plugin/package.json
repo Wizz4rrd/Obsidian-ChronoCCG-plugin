@@ -1,0 +1,36 @@
+{
+	"name": "obsidian-chronoccg",
+	"version": "0.1.0",
+	"description": "Obsidian plugin for the ChronoCCG card game.",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"typecheck": "tsc -noEmit -skipLibCheck",
+		"lint": "eslint .",
+		"test": "node scripts/test.mjs",
+		"version": "node scripts/version-bump.mjs"
+	},
+	"keywords": [
+		"obsidian",
+		"plugin",
+		"ccg",
+		"tcg",
+		"chrono"
+	],
+	"author": "Merlin Deramaix",
+	"license": "MIT",
+	"devDependencies": {
+		"@codemirror/language": "^6.13.1",
+		"@codemirror/state": "^6.5.0",
+		"@codemirror/view": "^6.38.6",
+		"@types/node": "^20.11.0",
+		"esbuild": "^0.21.0",
+		"eslint": "^9.39.5",
+		"eslint-plugin-obsidianmd": "^0.5.1",
+		"obsidian": "latest",
+		"tslib": "^2.6.0",
+		"typescript": "^5.4.0",
+		"typescript-eslint": "^8.72.2"
+	}
+}
