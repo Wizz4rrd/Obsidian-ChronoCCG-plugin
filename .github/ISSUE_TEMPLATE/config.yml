@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Wrong or missing card data
+    url: https://www.runeterra.ar/chrono/home
+    about: Card names, stats and images come from runeterra.ar. If a card is wrong there too, it's best reported to them.

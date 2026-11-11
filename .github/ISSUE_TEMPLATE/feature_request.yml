@@ -1,0 +1,15 @@
+name: Feature request
+description: An idea for something the plugin could do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help you?
+      description: How do you use your Chrono notes, and what's missing today?
