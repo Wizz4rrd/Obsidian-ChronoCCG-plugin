@@ -4,12 +4,13 @@ import { POOL_COST_MAX, poolCards, poolCardState, poolScopeKey } from "../data/B
 import { decodeDeck } from "../data/DeckCodec";
 import { sortEntries, toCodeBlock } from "../data/DeckExport";
 import { deckStats, DIVER_COUNT, isDiverEligible, MAIN_DECK_SIZE, MAX_COPIES, validateDeck } from "../data/DeckRules";
-import { unwrapDeckCode } from "../data/deckInput";
+import { findFirstDeckBlock, unwrapDeckCode } from "../data/deckInput";
 import { Card, Deck, Syndicate, SYNDICATES } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
 import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, renderUnknownDeckRow, showExportMenu } from "./DeckWidgets";
 import { TextPromptModal } from "./TextPromptModal";
+import { updateDeckNoteProperties } from "../templates/DeckNoteSync";
 import { imageCache } from "../utils/ImageCache";
 
 export const VIEW_TYPE_DECK_BUILDER = "chronoccg-deck-builder";
@@ -414,11 +415,13 @@ export class DeckBuilderView extends ItemView {
 			const file = this.app.vault.getAbstractFileByPath(src.path);
 			if (file instanceof TFile) {
 				let ok = false;
+				let isFirstBlock = false;
 				await this.app.vault.process(file, (text) => {
 					const lines = text.split("\n");
 					const start = lines[src.lineStart]?.trim() ?? "";
 					const end = lines[src.lineEnd]?.trim() ?? "";
 					if (!/^(`{3,}|~{3,})\s*chrono-deck\b/.test(start) || !/^(`{3,}|~{3,})\s*$/.test(end)) return text;
+					isFirstBlock = findFirstDeckBlock(lines)?.start === src.lineStart;
 					lines.splice(src.lineStart, src.lineEnd - src.lineStart + 1, ...block.split("\n"));
 					src.lineEnd = src.lineStart + block.split("\n").length - 1;
 					ok = true;
@@ -426,7 +429,15 @@ export class DeckBuilderView extends ItemView {
 				});
 				if (ok) {
 					this.persist();
-					new Notice(`ChronoCCG: saved deck to ${src.path}.`);
+					let updated: string[] = [];
+					if (isFirstBlock) {
+						try {
+							updated = await updateDeckNoteProperties(this.plugin, file, this.deck);
+						} catch (err) {
+							new Notice(`ChronoCCG: could not update the note properties — ${(err as Error).message}`);
+						}
+					}
+					new Notice(`ChronoCCG: saved deck to ${src.path}${updated.length ? ` (updated ${updated.join(", ")})` : ""}.`);
 					return;
 				}
 				new Notice("ChronoCCG: the original deck block moved — saving as a new note instead.");

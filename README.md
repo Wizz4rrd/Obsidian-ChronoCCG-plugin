@@ -59,12 +59,15 @@ cards:
 | Insert inline card reference… / Insert card image block… | |
 | Look up a card… / Add card to deck builder… | |
 | New deck note / New matchup note / New tournament report | |
+| Update deck note properties | Sets `deck`, `syndicates`, `divers` and `code` from the note's first deck block |
 | Write default templates to the template folder | Copies the templates so you can edit them |
 | Refresh card database | Downloads the card list again |
 
 ### Templates
 
-New notes go in `ChronoCCG/Decks`, `ChronoCCG/Matchups` and `ChronoCCG/Tournaments` (you can change the root folder in the settings). To edit the templates, run "Write default templates to the template folder" and change the files it creates. Placeholders: `{{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}`.
+New notes go in `ChronoCCG/Decks`, `ChronoCCG/Matchups` and `ChronoCCG/Tournaments` (you can change the root folder in the settings).
+
+In a deck note (`type: chrono-deck`), the `deck`, `syndicates`, `divers` and `code` properties describe the first `chrono-deck` block. Saving from the deck builder updates them. If you edit the block by hand, the block shows "Note properties are out of date" with an Update button (or run "Update deck note properties"). Properties your template doesn't have are left alone. To edit the templates, run "Write default templates to the template folder" and change the files it creates. Placeholders: `{{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}`.
 
 ### Limitations
 

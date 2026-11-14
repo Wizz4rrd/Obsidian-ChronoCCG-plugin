@@ -15,12 +15,20 @@ export function looksLikeDeckCode(value: string): boolean {
 	return /^[A-Z2-7=]+$/i.test(normalized) && normalized.length >= 8;
 }
 
+const DECK_FENCE = /^(`{3,}|~{3,})\s*chrono-deck\b/;
+
+/** Line range of the first ```chrono-deck block: the one a deck note's properties describe. */
+export function findFirstDeckBlock(lines: string[]): { start: number; end: number } | null {
+	const start = lines.findIndex((l) => DECK_FENCE.test(l.trim()));
+	return start >= 0 ? findDeckBlockAt(lines, start) : null;
+}
+
 /** Line range of the ```chrono-deck block containing `line` (fence lines inclusive). */
 export function findDeckBlockAt(lines: string[], line: number): { start: number; end: number } | null {
 	let start = -1;
 	for (let i = Math.min(line, lines.length - 1); i >= 0; i--) {
 		const t = lines[i].trim();
-		if (/^(`{3,}|~{3,})\s*chrono-deck\b/.test(t)) {
+		if (DECK_FENCE.test(t)) {
 			start = i;
 			break;
 		}

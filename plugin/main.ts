@@ -6,7 +6,7 @@ import { Card, Deck } from "./src/data/types";
 import { ChronoSettings, ChronoSettingsTab, DEFAULT_SETTINGS } from "./src/settings/SettingsTab";
 import { registerCardCodeBlock } from "./src/markdown/CardCodeBlock";
 import { parseDeck, registerDeckCodeBlock } from "./src/markdown/DeckCodeBlock";
-import { findDeckBlockAt } from "./src/data/deckInput";
+import { findDeckBlockAt, findFirstDeckBlock } from "./src/data/deckInput";
 import { registerInlineCardRefs } from "./src/markdown/InlineCardRef";
 import { CardBrowserView, VIEW_TYPE_CARD_BROWSER } from "./src/ui/CardBrowserView";
 import { CardDetailModal, hideCardPopover } from "./src/ui/CardPreview";
@@ -15,6 +15,7 @@ import { DeckBuilderView, DeckSourceLink, emptyDeck, VIEW_TYPE_DECK_BUILDER } fr
 import { ImportDeckModal } from "./src/ui/ImportDeckModal";
 import { TextPromptModal } from "./src/ui/TextPromptModal";
 import { imageCache } from "./src/utils/ImageCache";
+import { deckNoteFrontmatter, updateDeckNoteProperties } from "./src/templates/DeckNoteSync";
 import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind } from "./src/templates/Templates";
 
 export default class ChronoCCGPlugin extends Plugin {
@@ -112,6 +113,17 @@ export default class ChronoCCGPlugin extends Plugin {
 					const deck = parseDeck(this, lines.slice(range.start + 1, range.end).join("\n"));
 					void this.openDeckInBuilder(deck, { path: ctx.file.path, lineStart: range.start, lineEnd: range.end });
 				}
+				return true;
+			},
+		});
+
+		this.addCommand({
+			id: "update-deck-note-properties",
+			name: "Update deck note properties",
+			checkCallback: (checking) => {
+				const file = this.app.workspace.getActiveFile();
+				if (!file || !deckNoteFrontmatter(this.app, file)) return false;
+				if (!checking) void this.updateDeckNote(file);
 				return true;
 			},
 		});
@@ -239,11 +251,28 @@ export default class ChronoCCGPlugin extends Plugin {
 	/** First chrono-deck block of the active markdown note, if any. */
 	private activeDeck(): Deck | undefined {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!view) return undefined;
-		const lines = view.editor.getValue().split("\n");
-		const start = lines.findIndex((l) => /^(`{3,}|~{3,})\s*chrono-deck\b/.test(l.trim()));
-		const range = start >= 0 ? findDeckBlockAt(lines, start) : null;
+		return view ? this.firstDeck(view.editor.getValue()) : undefined;
+	}
+
+	private firstDeck(text: string): Deck | undefined {
+		const lines = text.split("\n");
+		const range = findFirstDeckBlock(lines);
 		return range ? parseDeck(this, lines.slice(range.start + 1, range.end).join("\n")) : undefined;
+	}
+
+	/** Set a deck note's derived properties from its first deck block. */
+	private async updateDeckNote(file: TFile): Promise<void> {
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		// The editor may hold changes that aren't saved to disk yet.
+		const text = view?.file === file ? view.editor.getValue() : await this.app.vault.read(file);
+		const deck = this.firstDeck(text);
+		if (!deck) return void new Notice("ChronoCCG: this note has no chrono-deck block.");
+		try {
+			const changed = await updateDeckNoteProperties(this, file, deck);
+			new Notice(changed.length ? `ChronoCCG: updated ${changed.join(", ")}.` : "ChronoCCG: properties are already up to date.");
+		} catch (err) {
+			new Notice(`ChronoCCG: could not update properties — ${(err as Error).message}`);
+		}
 	}
 
 	private async writeDefaultTemplates(): Promise<void> {
