@@ -53,14 +53,16 @@ cards:
 | Command | |
 | --- | --- |
 | Open card browser / Open deck builder | Also in the ribbon |
-| Start a new deck in the builder | Clears the builder |
+| Start a new deck in the builder | Asks first when the builder has cards in it |
+| Save deck in builder | Same as the builder's save button, so you can give it a hotkey |
 | Edit deck block in builder | Put the cursor inside a `chrono-deck` block first |
+| Copy deck code | Of the `chrono-deck` block under the cursor, or the note's first one |
 | Import deck from code… | Open it in the builder, insert it in the note, or make a deck note |
 | Insert inline card reference… / Insert card image block… | |
-| Look up a card… / Add card to deck builder… | |
-| New deck note / New matchup note / New tournament report | |
+| Look up a card… | |
+| New deck note | Also opens the deck builder, linked to the new note |
+| New matchup note / New tournament report | |
 | Update deck note properties | Sets `deck`, `syndicates`, `divers` and `code` from the note's first deck block |
-| Write default templates to the template folder | Copies the templates so you can edit them |
 | Refresh card database | Downloads the card list again |
 
 ### Templates
@@ -69,7 +71,7 @@ New notes go in `ChronoCCG/Decks`, `ChronoCCG/Matchups` and `ChronoCCG/Tournamen
 
 In a deck note (`type: chrono-deck`), the `deck`, `syndicates`, `divers` and `code` properties describe the first `chrono-deck` block. Saving from the deck builder updates them. If you edit the block by hand, the block shows "Note properties are out of date" with an Update button (or run "Update deck note properties"). Properties your template doesn't have are left alone.
 
-Saving a deck note from the deck builder also adds a line to its "Changelog" section, e.g. ``- 2026-11-14 — Diver `chrono:Agent of Stability` → `chrono:Leeflo Mentor`, +2 `chrono:Bloom`, −1 `chrono:Throwdown` ``. Saves on the same day are merged into one line. Notes without a "Changelog" heading are left alone, and you can turn this off in the settings ("Log deck changes"). To edit the templates, run "Write default templates to the template folder" and change the files it creates. Placeholders: `{{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}`.
+Saving a deck note from the deck builder also adds a line to its "Changelog" section, e.g. ``- 2026-11-14 — Diver `chrono:Agent of Stability` → `chrono:Leeflo Mentor`, +2 `chrono:Bloom`, −1 `chrono:Throwdown` ``. Saves on the same day are merged into one line. Notes without a "Changelog" heading are left alone, and you can turn this off in the settings ("Log deck changes"). To edit the templates, click "Write templates" in the settings (Notes → Default templates) and change the files it creates. Placeholders: `{{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}`.
 
 ### Limitations
 
