@@ -63,6 +63,9 @@ export function locateDeckBlock(
 	link: { lineStart: number; body?: string },
 ): { start: number; end: number } | null {
 	const at = DECK_FENCE.test(lines[link.lineStart]?.trim() ?? "") ? findDeckBlockAt(lines, link.lineStart) : null;
-	if (at) return at;
-	return link.body === undefined ? null : findDeckBlockByBody(lines, link.body);
+	if (link.body === undefined) return at;
+	// Another deck block may have moved onto that line: the content decides, and the
+	// position only counts when the block was edited by hand since.
+	if (at && lines.slice(at.start + 1, at.end).join("\n").trim() === link.body.trim()) return at;
+	return findDeckBlockByBody(lines, link.body) ?? at;
 }

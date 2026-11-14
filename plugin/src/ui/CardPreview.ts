@@ -27,11 +27,14 @@ interface PopoverState {
 }
 
 const popovers = new WeakMap<Document, PopoverState>();
+/** Every popover element made, to remove them when the plugin unloads. */
+const popoverEls = new Set<HTMLElement>();
 
 function popoverFor(doc: Document): PopoverState {
 	let state = popovers.get(doc);
 	if (!state || !state.el.isConnected) {
 		const el = doc.body.querySelector<HTMLElement>(`.${POPOVER_CLASS}`) ?? doc.body.createDiv({ cls: POPOVER_CLASS });
+		popoverEls.add(el);
 		state = { el, width: POPOVER_WIDTH, height: 0, x: 0, y: 0, frame: 0 };
 		popovers.set(doc, state);
 	}
@@ -85,8 +88,23 @@ export function showCardPopover(plugin: ChronoCCGPlugin, card: Card, evt: MouseE
 	}
 }
 
+/** Remove the popovers from every window (plugin unload). */
+export function removeCardPopovers(): void {
+	for (const el of popoverEls) {
+		hideCardPopover(el.ownerDocument);
+		el.remove();
+	}
+	popoverEls.clear();
+}
+
 export function hideCardPopover(doc: Document = activeDocument): void {
-	popovers.get(doc)?.el.removeClass("is-visible");
+	const state = popovers.get(doc);
+	if (!state) return;
+	if (state.frame) {
+		(doc.defaultView ?? window).cancelAnimationFrame(state.frame);
+		state.frame = 0;
+	}
+	state.el.removeClass("is-visible");
 }
 
 function positionPopover(state: PopoverState, win: Window): void {

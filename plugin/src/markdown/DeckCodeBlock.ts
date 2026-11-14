@@ -1,4 +1,4 @@
-import { MarkdownPostProcessorContext, Notice, parseYaml, setIcon, TFile } from "obsidian";
+import { MarkdownPostProcessorContext, MarkdownRenderChild, Notice, parseYaml, setIcon, TFile } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { sortEntries } from "../data/DeckExport";
 import { parseDeckSource, ParsedDeck } from "../data/DeckParser";
@@ -79,7 +79,7 @@ function renderDeck(
 	const stats = deckStats(deck, plugin.cards);
 	const issues = validateDeck(deck, plugin.cards);
 	const chips = renderDeckChips(root, deck, stats, !issues.some((i) => i.level === "error"));
-	void flagOutdatedProperties(plugin, chips, deck, ctx, source);
+	flagOutdatedProperties(plugin, el, chips, deck, ctx, source);
 	renderIssues(root, issues, deck.errors);
 
 	const body = root.createDiv({ cls: "chrono-deck-body" });
@@ -137,44 +137,102 @@ function renderDeck(
 	}
 }
 
-/** Bar with an "Update" button under the chips when the deck note's properties no longer match this block. */
-async function flagOutdatedProperties(
+/** Shows the "out of date" bar under the chips while the deck note's properties don't match this block. */
+function flagOutdatedProperties(
 	plugin: ChronoCCGPlugin,
+	el: HTMLElement,
 	after: HTMLElement,
 	deck: ParsedDeck,
 	ctx: MarkdownPostProcessorContext,
 	source: string,
-): Promise<void> {
+): void {
 	// Without card data, or with unknown Divers, the expected values would be wrong.
 	if (plugin.cards.size <= 1 || deck.unknown.some((u) => u.diver) || deck.divers.some((id) => !plugin.cards.getById(id))) return;
 	const file = plugin.app.vault.getAbstractFileByPath(ctx.sourcePath);
-	if (!(file instanceof TFile) || !outdatedDeckProperties(plugin, file, deck).length) return;
-	// The properties describe the note's first deck block only.
-	const lines = (await plugin.app.vault.cachedRead(file)).split("\n");
-	const first = findFirstDeckBlock(lines);
-	if (!first || lines.slice(first.start + 1, first.end).join("\n").trim() !== source.trim()) return;
-	const outdated = outdatedDeckProperties(plugin, file, deck);
-	if (!outdated.length) return;
+	// Not limited to deck notes yet: the note can become one when its `type` is set.
+	if (!(file instanceof TFile)) return;
+	ctx.addChild(new OutdatedPropertiesBar(el, plugin, after, deck, file, source));
+}
 
-	const bar = createDiv({ cls: "chrono-deck-outdated" });
-	after.insertAdjacentElement("afterend", bar);
-	bar.createSpan({ text: `Note properties are out of date: ${outdated.join(", ")}.` });
-	const btn = bar.createEl("button", { text: "Update" });
-	btn.addEventListener("click", (evt) => {
-		evt.preventDefault();
-		evt.stopPropagation();
-		btn.disabled = true;
-		void updateDeckNoteProperties(plugin, file, deck).then(
-			(changed) => {
-				bar.remove();
-				new Notice(changed.length ? `ChronoCCG: updated ${changed.join(", ")}.` : "ChronoCCG: properties are already up to date.");
-			},
-			(err: Error) => {
-				btn.disabled = false;
-				new Notice(`ChronoCCG: could not update properties — ${err.message}`);
-			},
+/**
+ * Checked again whenever the note's metadata changes: saving from the deck
+ * builder (or editing the properties by hand) only changes the frontmatter,
+ * which doesn't re-render this block.
+ */
+class OutdatedPropertiesBar extends MarkdownRenderChild {
+	private bar: HTMLElement | null = null;
+	/** Bumped by each check, so a slower earlier one doesn't overwrite it. */
+	private checks = 0;
+
+	constructor(
+		containerEl: HTMLElement,
+		private plugin: ChronoCCGPlugin,
+		private after: HTMLElement,
+		private deck: ParsedDeck,
+		private file: TFile,
+		private source: string,
+	) {
+		super(containerEl);
+	}
+
+	onload(): void {
+		void this.check();
+		this.registerEvent(
+			this.plugin.app.metadataCache.on("changed", (file) => {
+				if (file === this.file) void this.check();
+			}),
 		);
-	});
+	}
+
+	onunload(): void {
+		this.bar?.remove();
+		this.bar = null;
+	}
+
+	private async check(): Promise<void> {
+		const check = ++this.checks;
+		const outdated = await this.outdated();
+		if (check !== this.checks) return;
+		if (outdated.length) this.show(outdated);
+		else {
+			this.bar?.remove();
+			this.bar = null;
+		}
+	}
+
+	private async outdated(): Promise<string[]> {
+		const { plugin, file, deck } = this;
+		if (!outdatedDeckProperties(plugin, file, deck).length) return [];
+		// The properties describe the note's first deck block only.
+		const lines = (await plugin.app.vault.cachedRead(file)).split("\n");
+		const first = findFirstDeckBlock(lines);
+		if (!first || lines.slice(first.start + 1, first.end).join("\n").trim() !== this.source.trim()) return [];
+		return outdatedDeckProperties(plugin, file, deck);
+	}
+
+	private show(outdated: string[]): void {
+		this.bar?.remove();
+		const bar = (this.bar = createDiv({ cls: "chrono-deck-outdated" }));
+		this.after.insertAdjacentElement("afterend", bar);
+		bar.createSpan({ text: `Note properties are out of date: ${outdated.join(", ")}.` });
+		const btn = bar.createEl("button", { text: "Update" });
+		btn.addEventListener("click", (evt) => {
+			evt.preventDefault();
+			evt.stopPropagation();
+			btn.disabled = true;
+			void updateDeckNoteProperties(this.plugin, this.file, this.deck).then(
+				(changed) => {
+					if (this.bar === bar) this.bar = null;
+					bar.remove();
+					new Notice(changed.length ? `ChronoCCG: updated ${changed.join(", ")}.` : "ChronoCCG: properties are already up to date.");
+				},
+				(err: Error) => {
+					btn.disabled = false;
+					new Notice(`ChronoCCG: could not update properties — ${err.message}`);
+				},
+			);
+		});
+	}
 }
 
 function tile(plugin: ChronoCCGPlugin, parent: HTMLElement, card: Card, count?: number): void {
