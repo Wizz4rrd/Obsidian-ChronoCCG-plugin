@@ -13,7 +13,7 @@ If you cloned the repo, you can try it in the example vault: open `example-vault
 - Card browser: a side panel with filters for cost, syndicate, spell speed, rarity, type, keyword and set. Click a card to insert it, add it to the builder or see the details.
 - Templates for deck, matchup and tournament notes. The frontmatter works with Dataview. You can replace them with your own.
 
-Deck codes work both ways with the game and with runeterra.ar.
+Deck codes work both ways with the game and with deck sites that use the same format.
 
 If a card can't be found (typo, or a card that isn't in the data yet), it shows up as a grey "?" card instead of disappearing.
 
@@ -68,26 +68,24 @@ New notes go in `ChronoCCG/Decks`, `ChronoCCG/Matchups` and `ChronoCCG/Tournamen
 
 ### Limitations
 
-- runeterra.ar doesn't have the cards' rules text, so search only looks at name, type, keywords, syndicate, stats and set. You can still read the text on the card image.
 - Desktop only for now (see below).
 
 ## Network use
 
-The plugin only goes online to get the card list and the card images. It doesn't send anything about you or your vault.
+The plugin only goes online to get the card list and the card images, from the official public data that Chronoverse Games Studio publishes on its CDN. It doesn't send anything about you or your vault.
 
 | When | What | Where |
 | --- | --- | --- |
-| At startup, if the card list is older than the refresh interval (7 days by default) | Downloads the card list | `www.runeterra.ar` |
-| When you run "Refresh card database" | Same | `www.runeterra.ar` |
-| The first time a card image is shown | Downloads the image | `cdn.runeterra.ar` |
+| At startup, if the card list is older than the refresh interval (7 days by default) | Downloads the card list (one file per set) | `cdn.playchrono.com` |
+| When you run "Refresh card database" | Same | `cdn.playchrono.com` |
+| The first time a card image is shown | Downloads the image (about 1.3 MB) | `cdn.playchrono.com` |
 | If you set a custom data URL | Downloads the card list | Your URL |
 
-The card list (`card-cache.json`) and the images (`image-cache/`) are saved in the plugin folder, so each image is only downloaded once and everything you've already seen works offline. You can turn off saving images or clear them in the settings. Set the auto-refresh interval to `0` to turn off the automatic download. If you pick the "Bundled" source it never downloads anything, but you only get a placeholder card.
+The card list (`card-cache.json`) and the images (`image-cache/`) are saved in the plugin folder, so each image is only downloaded once and everything you've already seen works offline. Saved images are shrunk to 400px wide WebP (about 35 KB each, roughly 14 MB for all 390 deck-legal cards). You can turn off saving images or clear them in the settings. With saving turned off, the full-size image is loaded every time. Set the auto-refresh interval to `0` to turn off the automatic download. If you pick the "Bundled" source it never downloads anything, but you only get a placeholder card.
 
 ## Plans
 
 - Mobile support
-- Card rules text in search (runeterra.ar doesn't have it)
 - Matchup stats (win rates per deck and opponent) from your matchup notes
 
 ## Development
@@ -137,8 +135,7 @@ I used AI coding tools (Claude Code) while building this plugin, the same way I'
 
 ## Credits
 
-- [ChronoCCG](https://playchrono.com/), the game
-- [runeterra.ar](https://www.runeterra.ar/chrono/home), for the card data and images
+- [ChronoCCG](https://playchrono.com/), the game, and its official public data on `cdn.playchrono.com`, for the card data and images
 
 This is an unofficial fan project. It isn't affiliated with or endorsed by Chronoverse Games Studio, who make ChronoCCG. Card names, images and text belong to them. The MIT license only covers the plugin's code.
 

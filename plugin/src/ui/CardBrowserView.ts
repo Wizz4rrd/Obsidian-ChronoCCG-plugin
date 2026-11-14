@@ -1,5 +1,6 @@
 import { ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
+import { isDiverEligible } from "../data/DeckRules";
 import { Card, SYNDICATES, Syndicate } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
@@ -291,8 +292,10 @@ export class CardBrowserView extends ItemView {
 		menu.addItem((i) => i.setTitle("Insert inline reference").setIcon("text-cursor-input").onClick(() => insert(`\`chrono:${card.name}\``)));
 		menu.addItem((i) => i.setTitle("Insert card block").setIcon("image").onClick(() => insert("```chrono-card\n" + card.name + "\n```\n")));
 		menu.addSeparator();
-		menu.addItem((i) => i.setTitle("Add to deck builder").setIcon("plus").onClick(() => void this.plugin.addToBuilder(card, false)));
-		if (/agent|unit/i.test(card.type)) {
+		if (card.collectible !== false) {
+			menu.addItem((i) => i.setTitle("Add to deck builder").setIcon("plus").onClick(() => void this.plugin.addToBuilder(card, false)));
+		}
+		if (isDiverEligible(card)) {
 			menu.addItem((i) => i.setTitle("Set as Diver").setIcon("crown").onClick(() => void this.plugin.addToBuilder(card, true)));
 		}
 		menu.addItem((i) => i.setTitle("Show details").setIcon("info").onClick(() => new CardDetailModal(this.app, this.plugin, card).open()));

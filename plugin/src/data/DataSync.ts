@@ -1,8 +1,9 @@
 import { Plugin, requestUrl } from "obsidian";
 import { Card, CardDatabase, Syndicate, SYNDICATES } from "./types";
+import { normalizeOfficial, OFFICIAL_CDN } from "./officialCards";
 import { asOptionalText, asText } from "../utils/text";
 
-export type DataSourceId = "bundled" | "runeterra-ar" | "custom";
+export type DataSourceId = "bundled" | "official" | "custom";
 
 export interface DataSourceConfig {
 	id: DataSourceId;
@@ -12,14 +13,17 @@ export interface DataSourceConfig {
 
 const CACHE_FILE = "card-cache.json";
 
+/** Safety stop for the set discovery loop (sets are numbered 1, 2, … until a 404). */
+const MAX_OFFICIAL_SETS = 100;
+
 /** Pulls card datasets from supported sources and normalizes card data. */
 export class DataSync {
 	constructor(private plugin: Plugin) {}
 
 	async fetch(source: DataSourceConfig): Promise<CardDatabase> {
 		switch (source.id) {
-			case "runeterra-ar":
-				return this.fetchRuneterraAr();
+			case "official":
+				return this.fetchOfficial();
 			case "custom":
 				if (!source.url) throw new Error("Custom data source requires a URL.");
 				return this.fetchCustom(source.url);
@@ -29,35 +33,27 @@ export class DataSync {
 		}
 	}
 
-	private async fetchRuneterraAr(): Promise<CardDatabase> {
-		// Confirmed endpoint (POST). `take` is large enough to cover the entire
-		// pool in one request; the server returns whatever exists.
-		const url = "https://www.runeterra.ar/api/cards/builder/get/en_us?game=chrono&take=2000";
-		const raw = await this.postJson(url, {});
-		return this.normalizeRuneterraAr(raw);
+	private async fetchOfficial(): Promise<CardDatabase> {
+		const raw: unknown[] = [];
+		for (let setId = 1; setId <= MAX_OFFICIAL_SETS; setId++) {
+			const set = await this.requestJson(`${OFFICIAL_CDN}/en_us/data/set/${setId}/CardsInSet${setId}.json`, {
+				allowNotFound: true,
+			});
+			if (set === null) break;
+			if (Array.isArray(set)) raw.push(...(set as unknown[]));
+		}
+		return normalizeOfficial(raw);
 	}
 
 	private async fetchCustom(url: string): Promise<CardDatabase> {
-		const raw = await this.getJson(url);
+		const raw = await this.requestJson(url);
 		return this.normalize(raw, url);
 	}
 
-	private async getJson(url: string): Promise<unknown> {
-		return this.requestJson(url, "GET");
-	}
-
-	private async postJson(url: string, body: unknown): Promise<unknown> {
-		return this.requestJson(url, "POST", JSON.stringify(body));
-	}
-
-	private async requestJson(url: string, method: "GET" | "POST", body?: string): Promise<unknown> {
-		const res = await requestUrl({
-			url,
-			method,
-			body,
-			contentType: method === "POST" ? "application/json" : undefined,
-			throw: false,
-		});
+	/** GET `url` as JSON. With `allowNotFound`, a 404 resolves to null. */
+	private async requestJson(url: string, opts: { allowNotFound?: boolean } = {}): Promise<unknown> {
+		const res = await requestUrl({ url, throw: false });
+		if (opts.allowNotFound && res.status === 404) return null;
 		if (res.status < 200 || res.status >= 300) {
 			throw new Error(`HTTP ${res.status} fetching ${url}`);
 		}
@@ -76,78 +72,6 @@ export class DataSync {
 		} catch (err) {
 			throw new Error(`Could not parse JSON from ${url}: ${(err as Error).message}`);
 		}
-	}
-
-	/** Normalizer for the runeterra.ar /api/cards/builder/get/{lang} response. */
-	private normalizeRuneterraAr(raw: unknown): CardDatabase {
-		const list = Array.isArray((raw as { cards?: unknown[] })?.cards)
-			? (raw as { cards: unknown[] }).cards
-			: [];
-		const cards: Card[] = [];
-		for (const entry of list) {
-			const c = this.normalizeRuneterraArCard(entry);
-			if (c) cards.push(c);
-		}
-		return {
-			version: new Date().toISOString().slice(0, 10),
-			source: "runeterra.ar",
-			cards,
-		};
-	}
-
-	private normalizeRuneterraArCard(raw: unknown): Card | null {
-		if (!raw || typeof raw !== "object") return null;
-		const r = raw as Record<string, unknown>;
-		const id = Number(r.cardId ?? r.cardCode);
-		if (!Number.isFinite(id)) return null;
-		const regionRefs = Array.isArray(r.regionRefs)
-			? (r.regionRefs as unknown[]).map(asText)
-			: r.regionRef
-				? [asText(r.regionRef)]
-				: [];
-		const syndicates = this.normalizeSyndicates(regionRefs);
-		const assets = (r.assets as Array<{ fullAbsolutePath?: string; gameAbsolutePath?: string }>) ?? [];
-		const game = sanitizeRemoteImageUrl(assets[0]?.gameAbsolutePath);
-		const fullArt = sanitizeRemoteImageUrl(assets[0]?.fullAbsolutePath);
-		// game = framed card (cost/stats/text on image); fullArt = illustration-only crop.
-		const imageUrl = game ?? fullArt;
-		const imageUrlFull = fullArt && game && fullArt !== game ? fullArt : undefined;
-		const keywords = Array.isArray(r.keywordRefs)
-			? (r.keywordRefs as unknown[]).map(asText)
-			: Array.isArray(r.keywords)
-				? (r.keywords as unknown[]).map(asText)
-				: [];
-		const subtypes = Array.isArray(r.subtypes)
-			? (r.subtypes as unknown[]).map(asText)
-			: r.subtype
-				? [asText(r.subtype)]
-				: [];
-		const spellSpeed = asOptionalText(r.spellSpeedRef ?? r.spellSpeed);
-		const attack = toFiniteNumber(r.attack);
-		const health = toFiniteNumber(r.health);
-		const textParts = [r.descriptionRaw, r.description, r.levelupDescriptionRaw, r.levelupDescription]
-			.map(asText)
-			.filter((v) => v.trim() !== "");
-		return {
-			id,
-			name: asText(r.name) || `Card ${id}`,
-			syndicates,
-			type: asText(r.typeRef ?? r.type) || "Unit",
-			cost: Number(r.cost ?? 0) || 0,
-			attack,
-			health,
-			rarity: asText(r.rarityRef ?? r.rarity) || "Common",
-			keywords,
-			subtypes: subtypes.length ? subtypes : undefined,
-			spellSpeed,
-			text: textParts.join("\n"),
-			flavor: asOptionalText(r.flavorText),
-			set: asOptionalText(r.set),
-			artist: asOptionalText(r.artistName),
-			collectible: r.collectible === false ? false : undefined,
-			imageUrl,
-			imageUrlFull,
-		};
 	}
 
 	/** Defensive normalizer: accepts either an array or {cards: [...]}. */

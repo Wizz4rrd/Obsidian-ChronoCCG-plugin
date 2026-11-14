@@ -447,8 +447,9 @@ body {
 	cursor: help;
 }
 
-/* Card image still downloading into the local cache. */
-img.is-loading {
+/* Card image still downloading into the local cache, or no image for this card. */
+img.is-loading,
+img.is-missing {
 	min-height: 120px;
 	background: var(--background-modifier-hover);
 }

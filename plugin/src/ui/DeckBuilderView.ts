@@ -101,6 +101,7 @@ export class DeckBuilderView extends ItemView {
 	}
 
 	addCard(card: Card, asDiver: boolean): void {
+		if (card.collectible === false) return void new Notice(`${card.name} can't be put in a deck.`);
 		if (asDiver) {
 			if (!isDiverEligible(card)) return void new Notice(`${card.name} cannot be a Diver (Agents only).`);
 			if (this.deck.divers.includes(card.id)) return;

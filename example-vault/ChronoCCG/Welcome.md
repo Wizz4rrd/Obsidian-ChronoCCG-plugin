@@ -32,7 +32,7 @@ full
 ## 3. Decks
 A `chrono-deck` block accepts three formats. Each block shows legality (2 Divers + 40 cards, max 3 copies, only the Divers' syndicates), the energy curve, and buttons to **copy the deck code**, **export** (markdown table, text, JSON) and **edit in the deck builder**.
 
-**a) A bare deck code** (from the game or runeterra.ar):
+**a) A bare deck code** (from the game or a deck site):
 
 ```chrono-deck
 AUGVG33NNZ2XGICSMV3GS5TFBNRW63TTORZHKY3UMVSHUAACAEAAFBIBA4GGMAYMAMHAGCADNUBQEAYZAMBQGAQDAMBQEAYCAM

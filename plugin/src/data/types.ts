@@ -1,6 +1,6 @@
 // Core domain types for ChronoCCG.
-// Kept intentionally permissive while the game is in early access and the
-// public schemas (runeterra.ar and custom sources) are still moving.
+// Kept intentionally permissive: the official data asks consumers to treat
+// every field as optional, and custom sources may differ.
 
 export type Syndicate =
 	| "Lifeblood"
@@ -26,7 +26,7 @@ export type CardType = "Agent" | "Action" | "Timeline" | (string & {});
 export type Rarity = "Common" | "Rare" | "Divergent" | "Lost" | (string & {});
 
 export interface Card {
-	/** Numeric id used by runeterra.ar image URLs. */
+	/** CardID: used by deck codes and image URLs. */
 	id: number;
 	name: string;
 	syndicates: Syndicate[];
@@ -39,16 +39,16 @@ export interface Card {
 	text: string;
 	/** Spell speed for actions (e.g. Immediate / Fast / Slow); empty for units. */
 	spellSpeed?: string;
-	/** Subtype line from data (e.g. Agent, Immortalized). */
+	/** Subtype line from data (e.g. Token). */
 	subtypes?: string[];
 	flavor?: string;
 	set?: string;
 	artist?: string;
 	/** False for tokens / immortalized forms that cannot be put in a deck. */
 	collectible?: boolean;
-	/** Optional override; otherwise resolved from settings.imageBase + id. */
+	/** Full card render (frame, cost, stats and text on the image). */
 	imageUrl?: string;
-	/** Runeterra.ar full-bleed art (`*-full.webp`); in-game frame is usually `imageUrl`. */
+	/** Illustration only, without the frame. */
 	imageUrlFull?: string;
 }
 
@@ -71,7 +71,7 @@ export interface Deck {
 export interface CardDatabase {
 	/** ISO date of when the dataset was generated upstream. */
 	version: string;
-	/** Source identifier ("bundled" | "runeterra.ar" | url). */
+	/** Source identifier ("bundled" | "playchrono.com" | url). */
 	source: string;
 	cards: Card[];
 }
