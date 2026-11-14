@@ -1,7 +1,9 @@
 import { App, TFile } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
+import { findFirstDeckBlock } from "../data/deckInput";
 import { DECK_NOTE_TYPE, deckProperties, DeckPropertyKey, staleProperties } from "../data/deckProperties";
 import { Deck } from "../data/types";
+import type { DeckSourceLink } from "../ui/DeckBuilderView";
 
 /** Frontmatter of `file` when it is a deck note (`type: chrono-deck`). */
 export function deckNoteFrontmatter(app: App, file: TFile): Record<string, unknown> | null {
@@ -26,4 +28,12 @@ export async function updateDeckNoteProperties(plugin: ChronoCCGPlugin, file: TF
 		for (const key of changed) fm[key] = expected[key];
 	});
 	return changed;
+}
+
+/** Link to the first deck block of `file`, for the deck builder to save back to. */
+export async function firstDeckBlockLink(app: App, file: TFile): Promise<DeckSourceLink | undefined> {
+	const lines = (await app.vault.read(file)).split("\n");
+	const range = findFirstDeckBlock(lines);
+	if (!range) return undefined;
+	return { path: file.path, lineStart: range.start, lineEnd: range.end, body: lines.slice(range.start + 1, range.end).join("\n") };
 }

@@ -12,11 +12,13 @@ import { CardBrowserView, VIEW_TYPE_CARD_BROWSER } from "./src/ui/CardBrowserVie
 import { CardDetailModal, hideCardPopover } from "./src/ui/CardPreview";
 import { CardSuggestModal } from "./src/ui/CardSuggestModal";
 import { DeckBuilderView, DeckSourceLink, emptyDeck, VIEW_TYPE_DECK_BUILDER } from "./src/ui/DeckBuilderView";
+import { ConfirmModal } from "./src/ui/ConfirmModal";
+import { copyDeckCode } from "./src/ui/DeckWidgets";
 import { ImportDeckModal } from "./src/ui/ImportDeckModal";
 import { TextPromptModal } from "./src/ui/TextPromptModal";
 import { imageCache } from "./src/utils/ImageCache";
 import { cardImageUrls } from "./src/utils/imageUrl";
-import { deckNoteFrontmatter, updateDeckNoteProperties } from "./src/templates/DeckNoteSync";
+import { deckNoteFrontmatter, firstDeckBlockLink, updateDeckNoteProperties } from "./src/templates/DeckNoteSync";
 import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind } from "./src/templates/Templates";
 
 export default class ChronoCCGPlugin extends Plugin {
@@ -88,7 +90,18 @@ export default class ChronoCCGPlugin extends Plugin {
 		this.addCommand({
 			id: "new-deck-in-builder",
 			name: "Start a new deck in the builder",
-			callback: () => this.openDeckInBuilder(emptyDeck()),
+			callback: () => this.newDeckInBuilder(),
+		});
+
+		this.addCommand({
+			id: "save-builder-deck",
+			name: "Save deck in builder",
+			checkCallback: (checking) => {
+				const view = this.app.workspace.getLeavesOfType(VIEW_TYPE_DECK_BUILDER)[0]?.view;
+				if (!(view instanceof DeckBuilderView)) return false;
+				if (!checking) void view.save();
+				return true;
+			},
 		});
 
 		this.addCommand({
@@ -114,6 +127,18 @@ export default class ChronoCCGPlugin extends Plugin {
 					const body = lines.slice(range.start + 1, range.end).join("\n");
 					void this.openDeckInBuilder(parseDeck(this, body), { path: ctx.file.path, lineStart: range.start, lineEnd: range.end, body });
 				}
+				return true;
+			},
+		});
+
+		this.addCommand({
+			id: "copy-deck-code",
+			name: "Copy deck code",
+			editorCheckCallback: (checking, editor) => {
+				const lines = editor.getValue().split("\n");
+				const range = findDeckBlockAt(lines, editor.getCursor().line) ?? findFirstDeckBlock(lines);
+				if (!range) return false;
+				if (!checking) void copyDeckCode(parseDeck(this, lines.slice(range.start + 1, range.end).join("\n")));
 				return true;
 			},
 		});
@@ -150,12 +175,6 @@ export default class ChronoCCGPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "add-card-to-builder",
-			name: "Add card to deck builder…",
-			callback: () => new CardSuggestModal(this.app, this, (card) => void this.addToBuilder(card, false)).open(),
-		});
-
-		this.addCommand({
 			id: "new-deck-note",
 			name: "New deck note",
 			callback: () =>
@@ -163,7 +182,7 @@ export default class ChronoCCGPlugin extends Plugin {
 					title: "New deck note",
 					placeholder: "Deck name",
 					cta: "Create",
-					onSubmit: (name) => void this.templates.createDeckNote({ ...emptyDeck(), name }),
+					onSubmit: (name) => void this.newDeckNote(name),
 				}).open(),
 		});
 
@@ -189,12 +208,6 @@ export default class ChronoCCGPlugin extends Plugin {
 					cta: "Create",
 					onSubmit: (event) => void this.templates.createTournamentNote(event, this.activeDeckLink(), this.activeDeck()),
 				}).open(),
-		});
-
-		this.addCommand({
-			id: "write-default-templates",
-			name: "Write default templates to the template folder",
-			callback: () => this.writeDefaultTemplates(),
 		});
 	}
 
@@ -232,6 +245,34 @@ export default class ChronoCCGPlugin extends Plugin {
 			this.settings.builderDraft = { deck: copy, source };
 			await this.saveSettings();
 		}
+	}
+
+	/** Empty the deck builder, asking first when it has cards in it. */
+	newDeckInBuilder(): void {
+		this.confirmReplaceDraft("Start a new deck", "Start new deck", () => void this.openDeckInBuilder(emptyDeck()));
+	}
+
+	/** Create a deck note and open its (empty) deck in the builder, linked to the note. */
+	private async newDeckNote(name: string): Promise<void> {
+		const deck = { ...emptyDeck(), name };
+		const file = await this.templates.createDeckNote(deck);
+		if (!file) return;
+		const link = await firstDeckBlockLink(this.app, file);
+		this.confirmReplaceDraft("Build the new deck", "Open in deck builder", () => void this.openDeckInBuilder(deck, link));
+	}
+
+	/** Run `replace` right away when the builder is empty, else after the user confirms. */
+	private confirmReplaceDraft(title: string, cta: string, replace: () => void): void {
+		const deck = this.settings.builderDraft.deck;
+		const cards = deck.divers.length + deck.entries.reduce((n, e) => n + e.count, 0);
+		if (!cards) return replace();
+		const name = deck.name ? `“${deck.name}”` : "a deck";
+		new ConfirmModal(this.app, {
+			title,
+			message: `The deck builder has ${name} with ${cards} card${cards === 1 ? "" : "s"}. It will be replaced; changes you haven't saved are lost.`,
+			cta,
+			onConfirm: replace,
+		}).open();
 	}
 
 	async addToBuilder(card: Card, asDiver: boolean): Promise<void> {
@@ -276,7 +317,8 @@ export default class ChronoCCGPlugin extends Plugin {
 		}
 	}
 
-	private async writeDefaultTemplates(): Promise<void> {
+	/** Copy the built-in templates into the template folder (existing files are kept). */
+	async writeDefaultTemplates(): Promise<void> {
 		const folder = this.settings.templateFolder || `${this.settings.notesFolder || "ChronoCCG"}/Templates`;
 		if (!this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder);
 		let written = 0;

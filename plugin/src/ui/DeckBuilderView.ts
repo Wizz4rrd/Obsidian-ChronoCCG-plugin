@@ -13,7 +13,7 @@ import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues
 import { renderSyndicateIcon } from "./SyndicateIcon";
 import { TextPromptModal } from "./TextPromptModal";
 import { parseDeck } from "../markdown/DeckCodeBlock";
-import { updateDeckNoteProperties } from "../templates/DeckNoteSync";
+import { firstDeckBlockLink, updateDeckNoteProperties } from "../templates/DeckNoteSync";
 import { today } from "../templates/Templates";
 import { imageCache } from "../utils/ImageCache";
 
@@ -334,9 +334,7 @@ export class DeckBuilderView extends ItemView {
 		action("copy", "Copy deck code", () => void copyDeckCode(deck));
 		action("share", "Export…", (evt) => showExportMenu(this.plugin, deck, evt));
 		action("download", "Import deck code", () => this.importCode());
-		action("trash-2", "Clear deck", () => {
-			this.loadDraft({ deck: emptyDeck() });
-		});
+		action("trash-2", "Clear deck", () => this.plugin.newDeckInBuilder());
 
 		if (this.draft.source) {
 			const link = el.createDiv({ cls: "chrono-builder-source" });
@@ -416,7 +414,8 @@ export class DeckBuilderView extends ItemView {
 		}).open();
 	}
 
-	private async save(): Promise<void> {
+	/** Write the deck back to the block it came from, or to a new deck note. */
+	async save(): Promise<void> {
 		const block = toCodeBlock(this.deck, this.plugin.cards).replace(/\n$/, "").split("\n");
 		const src = this.draft.source;
 		if (src) {
@@ -461,12 +460,7 @@ export class DeckBuilderView extends ItemView {
 		}
 		const file = await this.plugin.templates.createDeckNote(this.deck);
 		if (file) {
-			const lines = (await this.app.vault.read(file)).split("\n");
-			const range = findFirstDeckBlock(lines);
-			if (range) {
-				const body = lines.slice(range.start + 1, range.end).join("\n");
-				this.draft.source = { path: file.path, lineStart: range.start, lineEnd: range.end, body };
-			}
+			this.draft.source = await firstDeckBlockLink(this.app, file);
 			this.changed();
 		}
 	}

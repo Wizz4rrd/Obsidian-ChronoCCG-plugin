@@ -277,6 +277,16 @@ export class ChronoSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Default templates")
+			.setDesc("Copy the built-in deck, matchup and tournament templates into the template folder, so you can edit them. Existing files are kept.")
+			.addButton((b) =>
+				b.setButtonText("Write templates").onClick(async () => {
+					await this.plugin.writeDefaultTemplates();
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName("Log deck changes")
 			.setDesc(
 				'When you save a deck note from the deck builder, add what changed (cards, Divers, name) to the note\'s "Changelog" section. ' +
