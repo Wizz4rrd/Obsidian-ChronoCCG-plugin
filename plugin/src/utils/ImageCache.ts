@@ -47,7 +47,11 @@ export class ImageCache {
 	private queue: Array<() => void> = [];
 	private running = 0;
 	private encoding: { type: string; ext: string } | null = null;
-	private observers = new WeakMap<Window, IntersectionObserver>();
+	private observers = new Map<Window, IntersectionObserver>();
+	/** Original URL of each cached file, to point the images on screen elsewhere when the cache is cleared. */
+	private sources = new Map<string, string>();
+	/** Windows images were shown in (main window and popouts). */
+	private windows = new Set<Window>();
 	private onVisible = new WeakMap<Element, () => void>();
 	private job: { progress: DownloadProgress; controller: AbortController } | null = null;
 	private downloadListeners = new Set<(p: DownloadProgress) => void>();
@@ -66,6 +70,8 @@ export class ImageCache {
 			return;
 		}
 		const name = this.fileName(url);
+		this.sources.set(name, url);
+		this.track(img.win);
 		if (this.onDisk.has(name)) {
 			img.src = this.resourceUrl(name);
 			return;
@@ -149,13 +155,60 @@ export class ImageCache {
 		const adapter = this.plugin?.app.vault.adapter;
 		const dir = this.dir();
 		if (adapter && dir && (await adapter.exists(dir))) await adapter.rmdir(dir, true);
+		const shown = new Map<string, string>();
+		for (const [name, resource] of this.urls) {
+			const url = this.sources.get(name);
+			if (url) shown.set(resource, url);
+		}
 		this.reset();
 		this.index = Promise.resolve();
+		// Images on screen point at files that are gone: load them again (downloaded again, or the original when saving is off).
+		for (const win of this.windows) {
+			win.document.querySelectorAll("img").forEach((img) => {
+				const url = shown.get(img.getAttribute("src") ?? "");
+				if (url) this.setSrc(img, url);
+			});
+		}
+	}
+
+	/** Stop all work: called when the plugin unloads. */
+	destroy(): void {
+		this.cancelDownload();
+		this.generation++;
+		for (const observer of this.observers.values()) observer.disconnect();
+		this.observers.clear();
+		this.onVisible = new WeakMap();
+		this.windows.clear();
+		this.downloadListeners.clear();
+		this.reset();
+		// Downloads still queued find no plugin and return right away.
+		this.plugin = null;
+	}
+
+	/** Downloads are allowed: not with the "Bundled" (offline) data source. */
+	get online(): boolean {
+		return this.plugin?.settings.dataSource !== "bundled";
+	}
+
+	private track(win: Window | undefined): void {
+		if (!win || this.windows.has(win)) return;
+		this.windows.add(win);
+		// A closed popout window: forget it and its observer.
+		win.addEventListener(
+			"unload",
+			() => {
+				this.windows.delete(win);
+				this.observers.get(win)?.disconnect();
+				this.observers.delete(win);
+			},
+			{ once: true },
+		);
 	}
 
 	private reset(): void {
 		this.onDisk.clear();
 		this.urls.clear();
+		this.sources.clear();
 		this.failed.clear();
 		this.index = null;
 	}

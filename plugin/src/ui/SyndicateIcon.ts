@@ -21,6 +21,11 @@ export function syndicateIconUrl(s: Syndicate): string {
 /** Official syndicate icon (saved with the card images), decorative: the syndicate name is always next to it. */
 export function renderSyndicateIcon(parent: HTMLElement, s: Syndicate): HTMLElement {
 	const el = parent.createSpan({ cls: ["chrono-synd-icon", `chrono-synd-${s.toLowerCase()}`], attr: { "aria-hidden": "true" } });
+	// The "Bundled" source never goes online.
+	if (!imageCache.online) {
+		setIcon(el, FALLBACK_ICONS[s]);
+		return el;
+	}
 	const img = el.createEl("img", { attr: { alt: "" } });
 	img.addEventListener(
 		"error",

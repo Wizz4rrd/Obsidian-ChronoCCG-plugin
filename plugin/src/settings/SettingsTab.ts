@@ -58,6 +58,7 @@ export class ChronoSettingsTab extends PluginSettingTab {
 	hide(): void {
 		this.stopListening?.();
 		this.stopListening = null;
+		super.hide();
 	}
 
 	display(): void {

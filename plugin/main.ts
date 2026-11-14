@@ -9,7 +9,7 @@ import { parseDeck, registerDeckCodeBlock } from "./src/markdown/DeckCodeBlock";
 import { findDeckBlockAt, findFirstDeckBlock } from "./src/data/deckInput";
 import { registerInlineCardRefs } from "./src/markdown/InlineCardRef";
 import { CardBrowserView, VIEW_TYPE_CARD_BROWSER } from "./src/ui/CardBrowserView";
-import { CardDetailModal, hideCardPopover } from "./src/ui/CardPreview";
+import { CardDetailModal, removeCardPopovers } from "./src/ui/CardPreview";
 import { CardSuggestModal } from "./src/ui/CardSuggestModal";
 import { DeckBuilderView, DeckSourceLink, emptyDeck, VIEW_TYPE_DECK_BUILDER } from "./src/ui/DeckBuilderView";
 import { ConfirmModal } from "./src/ui/ConfirmModal";
@@ -71,7 +71,8 @@ export default class ChronoCCGPlugin extends Plugin {
 	}
 
 	onunload(): void {
-		hideCardPopover();
+		removeCardPopovers();
+		imageCache.destroy();
 	}
 
 	private registerCommands(): void {
@@ -341,7 +342,9 @@ export default class ChronoCCGPlugin extends Plugin {
 		const result = await imageCache.downloadAll(cardImageUrls(this.cards.all(), this.settings));
 		const saved = result.done - result.failed;
 		const failed = result.failed ? `, ${result.failed} failed` : "";
-		if (result.cancelled) new Notice(`ChronoCCG: image download stopped (${saved} saved${failed}).`);
+		// Turning off "Save card images" stops the download and deletes what it saved.
+		if (!this.settings.cacheImages) new Notice("ChronoCCG: image download stopped.");
+		else if (result.cancelled) new Notice(`ChronoCCG: image download stopped (${saved} saved${failed}).`);
 		else new Notice(`ChronoCCG: saved ${saved} card image${saved === 1 ? "" : "s"}${failed}.`);
 	}
 

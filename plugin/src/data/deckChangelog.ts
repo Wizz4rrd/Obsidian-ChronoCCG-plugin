@@ -18,13 +18,15 @@ export interface DeckChange {
 	divers: Map<string, number>;
 	/** New deck name, when it was renamed. */
 	name?: string;
+	/** Name before the rename, when it had one. */
+	from?: string;
 }
 
 const ENTRY = /^- (\d{4}-\d{2}-\d{2}) — (.+)$/;
 /** A card reference, capturing the card. */
 const REF = "`chrono:([^`]+)`";
 const ANY_REF = "`chrono:[^`]+`";
-const ITEM = new RegExp(`renamed to “[^”]*”|Diver ${ANY_REF} → ${ANY_REF}|[+−-]Diver ${ANY_REF}|[+−-]\\d+ ${ANY_REF}`, "g");
+const ITEM = new RegExp(`renamed to “[^”]*”|renamed “[^”]*” → “[^”]*”|Diver ${ANY_REF} → ${ANY_REF}|[+−-]Diver ${ANY_REF}|[+−-]\\d+ ${ANY_REF}`, "g");
 
 export function diffDecks(before: Deck, after: Deck, cards: CardLookup): DeckChange {
 	const ref = (id: number) => cards.getById(id)?.name ?? String(id);
@@ -36,13 +38,19 @@ export function diffDecks(before: Deck, after: Deck, cards: CardLookup): DeckCha
 	for (const id of before.divers) if (!after.divers.includes(id)) add(change.divers, ref(id), -1);
 	for (const id of after.divers) if (!before.divers.includes(id)) add(change.divers, ref(id), 1);
 	const name = after.name.trim();
-	if (name && name !== before.name.trim()) change.name = name;
+	if (name && name !== before.name.trim()) {
+		change.name = name;
+		if (before.name.trim()) change.from = before.name.trim();
+	}
 	return change;
 }
 
 /** `b` applied after `a`. */
 export function mergeChanges(a: DeckChange, b: DeckChange): DeckChange {
 	const out: DeckChange = { cards: new Map(a.cards), divers: new Map(a.divers), name: b.name ?? a.name };
+	out.from = a.name !== undefined ? a.from : b.from;
+	// Renamed back to the name it had before.
+	if (out.name !== undefined && out.name === out.from) out.name = out.from = undefined;
 	for (const [r, n] of b.cards) add(out.cards, r, n);
 	for (const [r, n] of b.divers) add(out.divers, r, n);
 	return out;
@@ -52,7 +60,7 @@ export function mergeChanges(a: DeckChange, b: DeckChange): DeckChange {
 export function formatChange(change: DeckChange): string {
 	const ref = (r: string) => `\`chrono:${r}\``;
 	const items: string[] = [];
-	if (change.name) items.push(`renamed to “${change.name}”`);
+	if (change.name) items.push(change.from ? `renamed “${change.from}” → “${change.name}”` : `renamed to “${change.name}”`);
 	const added = [...change.divers].filter(([, n]) => n > 0).map(([r]) => r);
 	const removed = [...change.divers].filter(([, n]) => n < 0).map(([r]) => r);
 	if (added.length === 1 && removed.length === 1) items.push(`Diver ${ref(removed[0])} → ${ref(added[0])}`);
@@ -74,6 +82,10 @@ export function parseChange(text: string): DeckChange | null {
 	for (const item of items) {
 		let m: RegExpMatchArray | null;
 		if ((m = item.match(/^renamed to “([^”]*)”$/))) change.name = m[1];
+		else if ((m = item.match(/^renamed “([^”]*)” → “([^”]*)”$/))) {
+			change.from = m[1];
+			change.name = m[2];
+		}
 		else if ((m = item.match(new RegExp(`^Diver ${REF} → ${REF}$`)))) {
 			add(change.divers, m[1], -1);
 			add(change.divers, m[2], 1);

@@ -51,7 +51,7 @@ test("logs a builder save under the Changelog heading", () => {
 	const out = logDeckChange(NOTE, deck, after, lookup, "2026-11-14").split("\n");
 	assert.equal(
 		out[4],
-		"- 2026-11-14 — renamed to “Renamed”, Diver `chrono:Bo` → `chrono:Cy`, +2 `chrono:Boof, Lonely and Proud`, −2 `chrono:Card 3`",
+		"- 2026-11-14 — renamed “Test” → “Renamed”, Diver `chrono:Bo` → `chrono:Cy`, +2 `chrono:Boof, Lonely and Proud`, −2 `chrono:Card 3`",
 	);
 	assert.deepEqual(out.slice(5), ["", "## Notes", "text"]);
 	assert.equal(logDeckChange(NOTE.replace("## Changelog", "## History"), deck, after, lookup, "2026-11-14"), NOTE.replace("## Changelog", "## History"));
@@ -65,6 +65,10 @@ test("saves on the same day merge into one changelog line", () => {
 	const second = logDeckChange(first, plus, swapped, lookup, "2026-11-14");
 	assert.equal(second.split("\n")[4], "- 2026-11-14 — +2 `chrono:Boof, Lonely and Proud`, −1 `chrono:Card 3`");
 	assert.equal(second.split("\n").length, NOTE.split("\n").length + 1);
+	// Renaming and renaming back on the same day cancels out.
+	const renamed = logDeckChange(first, plus, { ...plus, name: "New" }, lookup, "2026-11-14");
+	assert.equal(renamed.split("\n")[4], "- 2026-11-14 — renamed “Test” → “New”, +1 `chrono:Boof, Lonely and Proud`");
+	assert.equal(logDeckChange(renamed, { ...plus, name: "New" }, plus, lookup, "2026-11-14"), first);
 	// Undoing everything removes the line again.
 	assert.equal(logDeckChange(second, swapped, deck, lookup, "2026-11-14"), NOTE);
 	// A line with the user's own words is never rewritten.
@@ -79,4 +83,9 @@ test("finds the builder's block again after the note changed above it", () => {
 	assert.deepEqual(locateDeckBlock(shifted, { lineStart: 4, body: "name: B" }), { start: 5, end: 7 });
 	assert.equal(locateDeckBlock(shifted, { lineStart: 4 }), null);
 	assert.equal(locateDeckBlock(shifted, { lineStart: 4, body: "name: C" }), null);
+	// Another deck block moved onto the line: found by its content instead.
+	const moved = ["# Deck", "```chrono-deck", "name: B", "```", "x", "```chrono-deck", "name: A", "```"];
+	assert.deepEqual(locateDeckBlock(moved, { lineStart: 5, body: "name: B" }), { start: 1, end: 3 });
+	// The block was edited by hand: its position still counts.
+	assert.deepEqual(locateDeckBlock(moved, { lineStart: 5, body: "name: Z" }), { start: 5, end: 7 });
 });
