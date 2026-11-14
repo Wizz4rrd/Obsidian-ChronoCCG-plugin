@@ -1,5 +1,6 @@
 import { App, Modal, Platform } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
+import { isDiverEligible } from "../data/DeckRules";
 import { Card } from "../data/types";
 import { setCardImage } from "../utils/imageUrl";
 import { syndicateClass } from "./CardTile";
@@ -20,7 +21,7 @@ export function showCardPopover(plugin: ChronoCCGPlugin, card: Card, evt: MouseE
 		pop.empty();
 		pop.dataset.cardId = String(card.id);
 		const img = pop.createEl("img", { attr: { alt: card.name } });
-		setCardImage(img, card, { ...plugin.settings, imageSize: "full" });
+		setCardImage(img, card, plugin.settings);
 		const info = pop.createDiv({ cls: "chrono-card-popover-info" });
 		info.createDiv({ cls: "chrono-card-popover-name", text: card.name });
 		info.createDiv({ cls: "chrono-card-popover-meta", text: cardMetaLine(card) });
@@ -84,7 +85,7 @@ export class CardDetailModal extends Modal {
 		contentEl.empty();
 		const wrap = contentEl.createDiv({ cls: "chrono-card-modal-body" });
 		const img = wrap.createEl("img", { cls: "chrono-card-modal-img", attr: { alt: card.name } });
-		setCardImage(img, card, { ...this.plugin.settings, imageSize: "full" });
+		setCardImage(img, card, this.plugin.settings);
 		const info = wrap.createDiv({ cls: "chrono-card-modal-info" });
 		info.createEl("h3", { text: card.name, cls: syndicateClass(card) });
 		info.createDiv({ cls: "chrono-card-modal-meta", text: cardMetaLine(card) });
@@ -102,8 +103,8 @@ export class CardDetailModal extends Modal {
 				this.close();
 			});
 		};
-		btn("Add to deck builder", () => void this.plugin.addToBuilder(card, false));
-		if (/agent|unit/i.test(card.type)) btn("Set as Diver", () => void this.plugin.addToBuilder(card, true));
+		if (card.collectible !== false) btn("Add to deck builder", () => void this.plugin.addToBuilder(card, false));
+		if (isDiverEligible(card)) btn("Set as Diver", () => void this.plugin.addToBuilder(card, true));
 		btn("Copy inline reference", () => void navigator.clipboard.writeText(`\`chrono:${card.name}\``));
 	}
 

@@ -20,7 +20,7 @@ export class ImportDeckModal extends Modal {
 
 		new Setting(contentEl)
 			.setName("Deck code")
-			.setDesc("Paste a ChronoCCG deck code (from the game or runeterra.ar).")
+			.setDesc("Paste a ChronoCCG deck code (from the game or a deck site).")
 			.setClass("chrono-prompt-field")
 			.addTextArea((t) =>
 				t

@@ -2,11 +2,9 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { DataSourceId } from "../data/DataSync";
 import { BuilderDraft, emptyDeck } from "../ui/DeckBuilderView";
-import { imageCache } from "../utils/ImageCache";
+import { CACHED_IMAGE_WIDTH, imageCache } from "../utils/ImageCache";
 
-export type ImageSize = "180" | "360" | "full";
-
-/** Runeterra.ar exposes framed in-game renders vs full-bleed art. */
+/** Full card render (frame, stats and text on the image) vs illustration only. */
 export type CardImageStyle = "game" | "full";
 
 export type DeckView = "grid" | "list";
@@ -14,8 +12,6 @@ export type DeckView = "grid" | "list";
 export interface ChronoSettings {
 	dataSource: DataSourceId;
 	customDataUrl: string;
-	imageBase: string;
-	imageSize: ImageSize;
 	/** Prefer framed card art (stats on image) or full-bleed illustration. */
 	cardImageStyle: CardImageStyle;
 	autoRefreshDays: number;
@@ -34,10 +30,8 @@ export interface ChronoSettings {
 }
 
 export const DEFAULT_SETTINGS: ChronoSettings = {
-	dataSource: "runeterra-ar",
+	dataSource: "official",
 	customDataUrl: "",
-	imageBase: "https://cdn.runeterra.ar/assets/img/card/en_us",
-	imageSize: "180",
 	cardImageStyle: "game",
 	autoRefreshDays: 7,
 	cacheImages: true,
@@ -68,7 +62,7 @@ export class ChronoSettingsTab extends PluginSettingTab {
 			.addDropdown((d) =>
 				d
 					.addOption("bundled", "Bundled (offline seed)")
-					.addOption("runeterra-ar", "Runeterra.ar")
+					.addOption("official", "Official (playchrono.com)")
 					.addOption("custom", "Custom URL")
 					.setValue(s.dataSource)
 					.onChange(async (v) => {
@@ -127,7 +121,10 @@ export class ChronoSettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Save card images")
-			.setDesc("Download each card image once and keep it in the plugin folder, so cards also show offline.")
+			.setDesc(
+				`Download each card image once and keep a ${CACHED_IMAGE_WIDTH}px copy in the plugin folder, so cards also show offline. ` +
+					"When off, the full-size images (about 1.3 MB each) are loaded every time.",
+			)
 			.addToggle((t) =>
 				t.setValue(s.cacheImages).onChange(async (v) => {
 					s.cacheImages = v;
@@ -191,30 +188,6 @@ export class ChronoSettingsTab extends PluginSettingTab {
 					s.hoverPreviews = v;
 					await save();
 				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Image base URL")
-			.setDesc("Fallback for cards without an explicit image URL.")
-			.addText((t) =>
-				t.setValue(s.imageBase).onChange(async (v) => {
-					s.imageBase = v.trim();
-					await save();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Fallback image size")
-			.addDropdown((d) =>
-				d
-					.addOption("180", "180px (thumbnail)")
-					.addOption("360", "360px")
-					.addOption("full", "Full size")
-					.setValue(s.imageSize)
-					.onChange(async (v) => {
-						s.imageSize = v as ImageSize;
-						await save();
-					}),
 			);
 
 		new Setting(containerEl).setName("Notes").setHeading();

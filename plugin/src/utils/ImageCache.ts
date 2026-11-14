@@ -3,9 +3,12 @@ import type ChronoCCGPlugin from "../../main";
 
 const CACHE_DIR = "image-cache";
 const MAX_PARALLEL_DOWNLOADS = 6;
+/** Cached copies are shrunk to this width (official renders are 1640px wide, ~1.3 MB each). */
+export const CACHED_IMAGE_WIDTH = 400;
+const WEBP_QUALITY = 0.85;
 
 /**
- * Keeps a copy of every card image in the plugin folder, so each image is
+ * Keeps a shrunk copy of every card image in the plugin folder, so each image is
  * downloaded once and cards still show offline. An image that isn't cached
  * yet is downloaded first and then shown from disk, so it is never fetched twice.
  */
@@ -16,6 +19,7 @@ export class ImageCache {
 	private pending = new Map<string, Promise<string | null>>();
 	private queue: Array<() => void> = [];
 	private running = 0;
+	private encoding: { type: string; ext: string } | null = null;
 
 	init(plugin: ChronoCCGPlugin): void {
 		this.plugin = plugin;
@@ -67,11 +71,22 @@ export class ImageCache {
 		return `${base}/${CACHE_DIR}`;
 	}
 
-	/** One flat file per URL, e.g. `cdn.runeterra.ar_assets_img_card_en_us_189.webp`. */
+	/** One flat file per URL, e.g. `cdn.playchrono.com_latest_en_us_img_cards_full_set_1_3-w400.webp`. */
 	private pathFor(url: string): string {
 		const u = new URL(url);
-		const name = `${u.hostname}${u.pathname}`.replace(/[^a-z0-9.-]+/gi, "_").slice(-150);
-		return `${this.dir()}/${name}`;
+		const name = `${u.hostname}${u.pathname.replace(/\.[a-z0-9]+$/i, "")}`.replace(/[^a-z0-9.-]+/gi, "_").slice(-140);
+		return `${this.dir()}/${name}-w${CACHED_IMAGE_WIDTH}.${this.format().ext}`;
+	}
+
+	/** WebP where the engine can encode it; PNG otherwise (Safari/iOS can't encode WebP). */
+	private format(): { type: string; ext: string } {
+		if (!this.encoding) {
+			const canvas = activeDocument.createElement("canvas");
+			canvas.width = canvas.height = 1;
+			const webp = canvas.toDataURL("image/webp").startsWith("data:image/webp");
+			this.encoding = webp ? { type: "image/webp", ext: "webp" } : { type: "image/png", ext: "png" };
+		}
+		return this.encoding;
 	}
 
 	private fetch(url: string): Promise<string | null> {
@@ -97,7 +112,7 @@ export class ImageCache {
 					return null;
 				}
 				if (!(await adapter.exists(dir))) await adapter.mkdir(dir);
-				await adapter.writeBinary(path, res.arrayBuffer);
+				await adapter.writeBinary(path, await this.shrink(res.arrayBuffer, type));
 			}
 			this.cached.add(path);
 			return path;
@@ -105,6 +120,44 @@ export class ImageCache {
 			this.failed.add(url);
 			return null;
 		}
+	}
+
+	/** Re-encode an image at {@link CACHED_IMAGE_WIDTH}px wide (never upscaled). */
+	private async shrink(data: ArrayBuffer, type: string): Promise<ArrayBuffer> {
+		const bitmap = await createImageBitmap(new Blob([data], { type }));
+		try {
+			const scale = Math.min(1, CACHED_IMAGE_WIDTH / bitmap.width);
+			const w = Math.max(1, Math.round(bitmap.width * scale));
+			const h = Math.max(1, Math.round(bitmap.height * scale));
+			// Halve first: a single large downscale step aliases in some engines.
+			let src: CanvasImageSource = bitmap;
+			let sw = bitmap.width;
+			let sh = bitmap.height;
+			while (sw / 2 >= w) {
+				sw = Math.round(sw / 2);
+				sh = Math.round(sh / 2);
+				src = this.draw(src, sw, sh);
+			}
+			const out = this.draw(src, w, h);
+			const { type: outType } = this.format();
+			const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, outType, WEBP_QUALITY));
+			if (!blob) throw new Error("image encoding failed");
+			return await blob.arrayBuffer();
+		} finally {
+			bitmap.close();
+		}
+	}
+
+	private draw(src: CanvasImageSource, w: number, h: number): HTMLCanvasElement {
+		const canvas = activeDocument.createElement("canvas");
+		canvas.width = w;
+		canvas.height = h;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) throw new Error("canvas unavailable");
+		ctx.imageSmoothingEnabled = true;
+		ctx.imageSmoothingQuality = "high";
+		ctx.drawImage(src, 0, 0, w, h);
+		return canvas;
 	}
 
 	private limit<T>(task: () => Promise<T>): Promise<T> {

@@ -24,9 +24,11 @@ export default class ChronoCCGPlugin extends Plugin {
 	templates = new NoteTemplates(this);
 
 	async onload(): Promise<void> {
-		await this.loadSettings();
+		const migratedFromRuneterra = await this.loadSettings();
 		this.sync = new DataSync(this);
 		imageCache.init(this);
+		// Images cached from runeterra.ar are never used again.
+		if (migratedFromRuneterra) await imageCache.clear();
 
 		// 1) seed first so things work offline
 		this.cards.load(SEED_DATABASE);
@@ -34,6 +36,8 @@ export default class ChronoCCGPlugin extends Plugin {
 		// 2) try cache, then optionally auto-refresh
 		const cached = await this.sync.readCache();
 		if (cached) this.cards.load(cached);
+		// Card data cached from runeterra.ar (no rules text) is replaced as soon as possible.
+		const legacyCache = cached?.source === "runeterra.ar" && this.settings.dataSource === "official";
 
 		this.addSettingTab(new ChronoSettingsTab(this.app, this));
 
@@ -54,8 +58,8 @@ export default class ChronoCCGPlugin extends Plugin {
 		// Auto-refresh if stale (after layout is ready so startup stays fast).
 		// Without a cache only the placeholder seed is loaded, so report failures.
 		this.app.workspace.onLayoutReady(() => {
-			if (this.shouldAutoRefresh()) {
-				this.refreshCardDatabase(true, !cached).catch(() => {});
+			if (legacyCache || this.shouldAutoRefresh()) {
+				this.refreshCardDatabase(true, !cached || legacyCache).catch(() => {});
 			} else if (!cached && this.settings.dataSource !== "bundled") {
 				this.notifyNoCardData();
 			}
@@ -259,16 +263,22 @@ export default class ChronoCCGPlugin extends Plugin {
 		new Notice(`ChronoCCG: wrote ${written} template(s) to ${folder}${written < 3 ? " (existing files kept)" : ""}.`);
 	}
 
-	async loadSettings(): Promise<void> {
+	/** @returns true when the settings were moved off the removed runeterra.ar source. */
+	async loadSettings(): Promise<boolean> {
 		const defaults = structuredClone(DEFAULT_SETTINGS);
 		this.settings = Object.assign(defaults, (await this.loadData()) as Partial<ChronoSettings> | null);
-		if ((this.settings.dataSource as string) === "chrono-db") {
-			this.settings.dataSource = "runeterra-ar";
-		}
+		const legacy = this.settings as unknown as Record<string, unknown>;
+		const migrated = legacy.dataSource === "runeterra-ar" || legacy.dataSource === "chrono-db";
+		if (migrated) this.settings.dataSource = "official";
+		// Settings of the runeterra.ar image fallback.
+		delete legacy.imageBase;
+		delete legacy.imageSize;
 		const draft = this.settings.builderDraft;
 		if (!draft?.deck || !Array.isArray(draft.deck.divers) || !Array.isArray(draft.deck.entries)) {
 			this.settings.builderDraft = { deck: emptyDeck() };
 		}
+		if (migrated) await this.saveSettings();
+		return migrated;
 	}
 
 	async saveSettings(): Promise<void> {

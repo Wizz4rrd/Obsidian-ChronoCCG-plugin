@@ -1,15 +1,13 @@
 import { DeckEntry } from "./types";
 
 /**
- * Encoder / decoder for ChronoCCG deck codes (the format used in-game and by
- * runeterra.ar).
+ * Encoder / decoder for ChronoCCG deck codes (the format used in-game, on the
+ * official leaderboard and by third-party sites).
  *
- * Format (base32 RFC 4648, no padding):
+ * Format, per the official "Chrono CCG Public Data" guide (base32 RFC 4648, no padding):
  *   1 byte  version (currently 5)
- *   1 byte  nameLen
- *   N bytes UTF-8 name
- *   1 byte  formatLen
- *   N bytes UTF-8 format (e.g. "constructed")
+ *   varint  nameLen, then N bytes UTF-8 name
+ *   varint  formatLen, then N bytes UTF-8 format (e.g. "constructed")
  *   2 × uint16 LE  Diver card ids (count 1 each, outside the main deck)
  *   varint  num_count_1   (main-deck cards with 1 copy)
  *   N varint deltas (running ascending card id)
@@ -18,9 +16,9 @@ import { DeckEntry } from "./types";
  *   varint  num_remaining  (cards with count >= 3)
  *   N × (varint delta, varint count) pairs
  *
- * The encoder output was verified byte-for-byte against runeterra.ar's
- * `cards/generate/deckcode` endpoint. The decoder is tolerant: it returns
- * whatever it manages to read and a list of warnings for the rest.
+ * The encoder output matches codes from the game byte-for-byte. The decoder
+ * is tolerant: it returns whatever it manages to read and a list of warnings
+ * for the rest.
  */
 export const DECK_CODE_VERSION = 5;
 export const DEFAULT_DECK_FORMAT = "constructed";
@@ -132,7 +130,8 @@ export function encodeDeck(deck: EncodeDeckInput): string {
 function writeLenString(out: number[], value: string): void {
 	let bytes = new TextEncoder().encode(value);
 	if (bytes.length > 255) bytes = bytes.subarray(0, 255);
-	out.push(bytes.length, ...bytes);
+	writeVarint(out, bytes.length);
+	out.push(...bytes);
 }
 
 function writeVarint(out: number[], value: number): void {
@@ -199,7 +198,7 @@ class ByteReader {
 	}
 
 	lenString(): string {
-		const len = this.u8();
+		const len = this.varint();
 		if (this.remaining < len) throw new Error("string longer than buffer");
 		const slice = this.buf.subarray(this.i, this.i + len);
 		this.i += len;
