@@ -11,16 +11,40 @@ import { syndicateClass } from "./CardTile";
  * On mobile there is no hover, so callers open {@link CardDetailModal} on tap.
  */
 const POPOVER_CLASS = "chrono-card-popover";
+const POPOVER_WIDTH = 260;
+
+interface PopoverState {
+	el: HTMLElement;
+	/** Measured once per card (and again when its image loads), not on every mouse move. */
+	height: number;
+	x: number;
+	y: number;
+	frame: number;
+}
+
+const popovers = new WeakMap<Document, PopoverState>();
+
+function popoverFor(doc: Document): PopoverState {
+	let state = popovers.get(doc);
+	if (!state || !state.el.isConnected) {
+		const el = doc.body.querySelector<HTMLElement>(`.${POPOVER_CLASS}`) ?? doc.body.createDiv({ cls: POPOVER_CLASS });
+		state = { el, height: 0, x: 0, y: 0, frame: 0 };
+		popovers.set(doc, state);
+	}
+	return state;
+}
 
 export function showCardPopover(plugin: ChronoCCGPlugin, card: Card, evt: MouseEvent): void {
 	if (!plugin.settings.hoverPreviews || Platform.isMobile) return;
 	const doc = (evt.target as Node | null)?.ownerDocument ?? activeDocument;
-	let pop = doc.body.querySelector<HTMLElement>(`.${POPOVER_CLASS}`);
-	if (!pop) pop = doc.body.createDiv({ cls: POPOVER_CLASS });
+	const state = popoverFor(doc);
+	const pop = state.el;
 	if (pop.dataset.cardId !== String(card.id)) {
 		pop.empty();
 		pop.dataset.cardId = String(card.id);
+		state.height = 0;
 		const img = pop.createEl("img", { attr: { alt: card.name } });
+		img.addEventListener("load", () => (state.height = 0));
 		setCardImage(img, card, plugin.settings);
 		const info = pop.createDiv({ cls: "chrono-card-popover-info" });
 		info.createDiv({ cls: "chrono-card-popover-name", text: card.name });
@@ -28,21 +52,31 @@ export function showCardPopover(plugin: ChronoCCGPlugin, card: Card, evt: MouseE
 		if (card.keywords.length) info.createDiv({ cls: "chrono-card-popover-kw", text: card.keywords.join(" · ") });
 		if (card.text) info.createDiv({ cls: "chrono-card-popover-text", text: card.text });
 	}
-	pop.addClass("is-visible");
-	positionPopover(pop, evt);
+	state.x = evt.clientX;
+	state.y = evt.clientY;
+	const win = doc.defaultView ?? window;
+	if (!pop.hasClass("is-visible")) {
+		pop.addClass("is-visible");
+		positionPopover(state, win);
+	} else if (!state.frame) {
+		// Mouse moves come faster than frames: position once per frame.
+		state.frame = win.requestAnimationFrame(() => {
+			state.frame = 0;
+			positionPopover(state, win);
+		});
+	}
 }
 
 export function hideCardPopover(doc: Document = activeDocument): void {
-	doc.body.querySelector(`.${POPOVER_CLASS}`)?.removeClass("is-visible");
+	popovers.get(doc)?.el.removeClass("is-visible");
 }
 
-function positionPopover(pop: HTMLElement, evt: MouseEvent): void {
-	const win = pop.ownerDocument.defaultView ?? window;
-	const w = 260;
-	const h = pop.offsetHeight || 420;
-	let x = evt.clientX + 18;
-	let y = evt.clientY - h / 3;
-	if (x + w > win.innerWidth - 8) x = evt.clientX - w - 18;
+function positionPopover(state: PopoverState, win: Window): void {
+	const pop = state.el;
+	const h = state.height || (state.height = pop.offsetHeight) || 420;
+	let x = state.x + 18;
+	let y = state.y - h / 3;
+	if (x + POPOVER_WIDTH > win.innerWidth - 8) x = state.x - POPOVER_WIDTH - 18;
 	y = Math.max(8, Math.min(y, win.innerHeight - h - 8));
 	pop.style.setProperty("--chrono-pop-x", `${Math.max(8, x)}px`);
 	pop.style.setProperty("--chrono-pop-y", `${y}px`);
