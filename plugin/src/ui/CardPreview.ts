@@ -1,5 +1,6 @@
 import { App, Modal, Platform } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
+import { isImmortalized } from "../data/CardRepository";
 import { isDiverEligible } from "../data/DeckRules";
 import { Card } from "../data/types";
 import { setCardImage } from "../utils/imageUrl";
@@ -12,9 +13,12 @@ import { syndicateClass } from "./CardTile";
  */
 const POPOVER_CLASS = "chrono-card-popover";
 const POPOVER_WIDTH = 260;
+/** With the immortalized side next to the card (see `.has-pair` in styles.css). */
+const POPOVER_PAIR_WIDTH = 480;
 
 interface PopoverState {
 	el: HTMLElement;
+	width: number;
 	/** Measured once per card (and again when its image loads), not on every mouse move. */
 	height: number;
 	x: number;
@@ -28,7 +32,7 @@ function popoverFor(doc: Document): PopoverState {
 	let state = popovers.get(doc);
 	if (!state || !state.el.isConnected) {
 		const el = doc.body.querySelector<HTMLElement>(`.${POPOVER_CLASS}`) ?? doc.body.createDiv({ cls: POPOVER_CLASS });
-		state = { el, height: 0, x: 0, y: 0, frame: 0 };
+		state = { el, width: POPOVER_WIDTH, height: 0, x: 0, y: 0, frame: 0 };
 		popovers.set(doc, state);
 	}
 	return state;
@@ -43,14 +47,28 @@ export function showCardPopover(plugin: ChronoCCGPlugin, card: Card, evt: MouseE
 		pop.empty();
 		pop.dataset.cardId = String(card.id);
 		state.height = 0;
-		const img = pop.createEl("img", { attr: { alt: card.name } });
-		img.addEventListener("load", () => (state.height = 0));
-		setCardImage(img, card, plugin.settings);
+		const other = plugin.cards.otherSide(card);
+		pop.toggleClass("has-pair", !!other);
+		state.width = other ? POPOVER_PAIR_WIDTH : POPOVER_WIDTH;
+		const images = pop.createDiv({ cls: "chrono-card-popover-images" });
+		for (const side of cardSides(card, other)) {
+			const figure = images.createDiv({ cls: "chrono-card-popover-side" });
+			const img = figure.createEl("img", { attr: { alt: side.name } });
+			img.addEventListener("load", () => (state.height = 0));
+			setCardImage(img, side, plugin.settings);
+			if (other) figure.createDiv({ cls: "chrono-card-popover-caption", text: sideLabel(side) });
+		}
 		const info = pop.createDiv({ cls: "chrono-card-popover-info" });
 		info.createDiv({ cls: "chrono-card-popover-name", text: card.name });
 		info.createDiv({ cls: "chrono-card-popover-meta", text: cardMetaLine(card) });
 		if (card.keywords.length) info.createDiv({ cls: "chrono-card-popover-kw", text: card.keywords.join(" · ") });
 		if (card.text) info.createDiv({ cls: "chrono-card-popover-text", text: card.text });
+		if (other) {
+			const side = info.createDiv({ cls: "chrono-card-popover-other" });
+			side.createDiv({ cls: "chrono-card-popover-name", text: `${sideLabel(other)}: ${other.name}` });
+			side.createDiv({ cls: "chrono-card-popover-meta", text: cardMetaLine(other) });
+			if (other.text) side.createDiv({ cls: "chrono-card-popover-text", text: other.text });
+		}
 	}
 	state.x = evt.clientX;
 	state.y = evt.clientY;
@@ -76,7 +94,7 @@ function positionPopover(state: PopoverState, win: Window): void {
 	const h = state.height || (state.height = pop.offsetHeight) || 420;
 	let x = state.x + 18;
 	let y = state.y - h / 3;
-	if (x + POPOVER_WIDTH > win.innerWidth - 8) x = state.x - POPOVER_WIDTH - 18;
+	if (x + state.width > win.innerWidth - 8) x = state.x - state.width - 18;
 	y = Math.max(8, Math.min(y, win.innerHeight - h - 8));
 	pop.style.setProperty("--chrono-pop-x", `${Math.max(8, x)}px`);
 	pop.style.setProperty("--chrono-pop-y", `${y}px`);
@@ -94,6 +112,16 @@ export function attachCardPreview(plugin: ChronoCCGPlugin, el: HTMLElement, card
 			new CardDetailModal(plugin.app, plugin, card).open();
 		});
 	}
+}
+
+/** The base Agent first, then its immortalized side. */
+function cardSides(card: Card, other: Card | undefined): Card[] {
+	if (!other) return [card];
+	return isImmortalized(card) ? [other, card] : [card, other];
+}
+
+function sideLabel(card: Card): string {
+	return isImmortalized(card) ? "Immortalized" : "Base";
 }
 
 export function cardMetaLine(card: Card): string {
@@ -118,14 +146,37 @@ export class CardDetailModal extends Modal {
 		this.modalEl.addClass("chrono-card-modal");
 		contentEl.empty();
 		const wrap = contentEl.createDiv({ cls: "chrono-card-modal-body" });
-		const img = wrap.createEl("img", { cls: "chrono-card-modal-img", attr: { alt: card.name } });
-		setCardImage(img, card, this.plugin.settings);
+		const other = this.plugin.cards.otherSide(card);
+		const images = wrap.createDiv({ cls: "chrono-card-modal-images" });
+		images.toggleClass("has-pair", !!other);
+		for (const side of cardSides(card, other)) {
+			const figure = images.createDiv({ cls: "chrono-card-modal-side" });
+			const img = figure.createEl("img", { cls: "chrono-card-modal-img", attr: { alt: side.name } });
+			setCardImage(img, side, this.plugin.settings);
+			if (!other) continue;
+			figure.createDiv({ cls: "chrono-card-modal-meta", text: sideLabel(side) });
+			if (side !== card) {
+				figure.addClass("is-clickable");
+				figure.setAttr("aria-label", `Open ${side.name}`);
+				figure.addEventListener("click", () => {
+					this.close();
+					new CardDetailModal(this.app, this.plugin, side).open();
+				});
+			}
+		}
 		const info = wrap.createDiv({ cls: "chrono-card-modal-info" });
 		info.createEl("h3", { text: card.name, cls: syndicateClass(card) });
 		info.createDiv({ cls: "chrono-card-modal-meta", text: cardMetaLine(card) });
 		if (card.keywords.length) info.createDiv({ cls: "chrono-card-modal-kw", text: `Keywords: ${card.keywords.join(", ")}` });
 		if (card.text) info.createDiv({ cls: "chrono-card-text", text: card.text });
 		if (card.flavor) info.createEl("em", { text: card.flavor });
+		if (other) {
+			const side = info.createDiv({ cls: "chrono-card-modal-other" });
+			side.createEl("h4", { text: `${sideLabel(other)}: ${other.name}`, cls: syndicateClass(other) });
+			side.createDiv({ cls: "chrono-card-modal-meta", text: cardMetaLine(other) });
+			if (other.keywords.length) side.createDiv({ cls: "chrono-card-modal-kw", text: `Keywords: ${other.keywords.join(", ")}` });
+			if (other.text) side.createDiv({ cls: "chrono-card-text", text: other.text });
+		}
 		if (card.artist) info.createDiv({ cls: "chrono-card-modal-meta", text: `Art: ${card.artist}` });
 		info.createDiv({ cls: "chrono-card-modal-meta", text: `Card id: ${card.id}` });
 

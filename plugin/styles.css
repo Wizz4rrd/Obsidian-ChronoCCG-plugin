@@ -486,6 +486,20 @@ img.is-missing {
 	display: block;
 	border-radius: 10px;
 }
+.chrono-card-popover.has-pair { width: 480px; }
+.chrono-card-popover-images { display: flex; gap: 6px; }
+.chrono-card-popover-side { flex: 1 1 0; min-width: 0; }
+.chrono-card-popover-caption {
+	margin-top: 2px;
+	text-align: center;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+.chrono-card-popover-other {
+	margin-top: 6px;
+	padding-top: 6px;
+	border-top: 1px solid var(--background-modifier-border);
+}
 .chrono-card-popover-info { padding: 6px 4px 2px; }
 .chrono-card-popover-name { font-weight: 700; }
 .chrono-card-popover-meta,
@@ -509,6 +523,26 @@ img.is-missing {
 	height: auto;
 	border-radius: 12px;
 	box-shadow: var(--shadow-s);
+}
+.chrono-card-modal-images {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+.chrono-card-modal-side { text-align: center; }
+.chrono-card-modal-side.is-clickable { cursor: pointer; }
+.chrono-card-modal-images.has-pair .chrono-card-modal-img { width: min(220px, 100%); }
+.chrono-card-modal-other {
+	margin-top: 6px;
+	padding-top: 8px;
+	border-top: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.chrono-card-modal-other h4 {
+	margin: 0;
+	color: var(--chrono-synd, var(--text-normal));
 }
 .chrono-card-modal-info {
 	flex: 1 1 220px;
