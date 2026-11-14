@@ -994,3 +994,50 @@ body.is-mobile button.chrono-builder-diver-btn { padding: 2px 10px; }
 	height: auto;
 	padding: 2px 10px;
 }
+
+/* ---- "ChronoCCG decks" Bases view ---- */
+.chrono-bases-decks {
+	overflow: auto;
+	height: 100%;
+	padding: 0 var(--size-4-2);
+}
+.chrono-bases-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--font-ui-small);
+}
+.chrono-bases-table th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	text-align: left;
+	font-weight: var(--font-medium);
+	color: var(--text-muted);
+	background: var(--background-primary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding: var(--size-4-2) var(--size-4-3);
+	white-space: nowrap;
+}
+.chrono-bases-table td {
+	padding: var(--size-4-2) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+	vertical-align: middle;
+}
+.chrono-bases-table tbody tr:hover td { background: var(--background-modifier-hover); }
+.chrono-bases-table tr.chrono-bases-group td {
+	font-weight: var(--font-semibold);
+	background: var(--background-secondary);
+}
+.chrono-bases-syndicates {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+}
+.chrono-bases-syndicates .chrono-synd-icon {
+	width: 1.5em;
+	height: 1.5em;
+}
+.chrono-bases-empty {
+	padding: var(--size-4-4);
+	color: var(--text-muted);
+}
