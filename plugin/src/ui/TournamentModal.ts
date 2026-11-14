@@ -57,7 +57,7 @@ export class TournamentModal extends Modal {
 
 		new Setting(contentEl).setName("Decks").setHeading();
 		if (!this.deckNotes.length) {
-			contentEl.createEl("p", { cls: "setting-item-description", text: "No deck notes yet: paste deck codes below, or add the decks later." });
+			contentEl.createEl("p", { cls: "setting-item-description", text: "No deck notes in the notes folder yet: paste deck codes below, or add the decks later." });
 		}
 		const list = contentEl.createDiv({ cls: "chrono-tournament-decks" });
 		for (const file of this.deckNotes) {

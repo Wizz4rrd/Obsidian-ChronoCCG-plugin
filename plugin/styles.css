@@ -408,8 +408,7 @@ body {
 .chrono-card-ref.is-unknown {
 	color: var(--text-muted);
 	font-weight: normal;
-	border-bottom: none;
-	text-decoration: wavy underline var(--text-error);
+	border-bottom: 1px dashed var(--text-error);
 }
 
 /* ---- Unknown cards ---- */
