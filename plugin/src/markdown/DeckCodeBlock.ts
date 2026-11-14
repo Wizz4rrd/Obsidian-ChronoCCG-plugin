@@ -1,11 +1,13 @@
-import { MarkdownPostProcessorContext, parseYaml, setIcon, TFile } from "obsidian";
+import { MarkdownPostProcessorContext, Notice, parseYaml, setIcon, TFile } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { sortEntries } from "../data/DeckExport";
 import { parseDeckSource, ParsedDeck } from "../data/DeckParser";
 import { deckStats, validateDeck } from "../data/DeckRules";
+import { findFirstDeckBlock } from "../data/deckInput";
 import { Card } from "../data/types";
 import { attachCardPreview } from "../ui/CardPreview";
 import { renderCardTile, renderUnknownCardTile } from "../ui/CardTile";
+import { outdatedDeckProperties, updateDeckNoteProperties } from "../templates/DeckNoteSync";
 import { DeckSourceLink } from "../ui/DeckBuilderView";
 import {
 	copyDeckCode,
@@ -76,7 +78,8 @@ function renderDeck(
 
 	const stats = deckStats(deck, plugin.cards);
 	const issues = validateDeck(deck, plugin.cards);
-	renderDeckChips(root, deck, stats, !issues.some((i) => i.level === "error"));
+	const chips = renderDeckChips(root, deck, stats, !issues.some((i) => i.level === "error"));
+	void flagOutdatedProperties(plugin, chips, deck, ctx, source);
 	renderIssues(root, issues, deck.errors);
 
 	const body = root.createDiv({ cls: "chrono-deck-body" });
@@ -132,6 +135,46 @@ function renderDeck(
 		foot.createDiv({ cls: "chrono-deck-footer-title", text: "Energy curve" });
 		renderCurve(foot, stats);
 	}
+}
+
+/** Bar with an "Update" button under the chips when the deck note's properties no longer match this block. */
+async function flagOutdatedProperties(
+	plugin: ChronoCCGPlugin,
+	after: HTMLElement,
+	deck: ParsedDeck,
+	ctx: MarkdownPostProcessorContext,
+	source: string,
+): Promise<void> {
+	// Without card data, or with unknown Divers, the expected values would be wrong.
+	if (plugin.cards.size <= 1 || deck.unknown.some((u) => u.diver) || deck.divers.some((id) => !plugin.cards.getById(id))) return;
+	const file = plugin.app.vault.getAbstractFileByPath(ctx.sourcePath);
+	if (!(file instanceof TFile) || !outdatedDeckProperties(plugin, file, deck).length) return;
+	// The properties describe the note's first deck block only.
+	const lines = (await plugin.app.vault.cachedRead(file)).split("\n");
+	const first = findFirstDeckBlock(lines);
+	if (!first || lines.slice(first.start + 1, first.end).join("\n").trim() !== source.trim()) return;
+	const outdated = outdatedDeckProperties(plugin, file, deck);
+	if (!outdated.length) return;
+
+	const bar = createDiv({ cls: "chrono-deck-outdated" });
+	after.insertAdjacentElement("afterend", bar);
+	bar.createSpan({ text: `Note properties are out of date: ${outdated.join(", ")}.` });
+	const btn = bar.createEl("button", { text: "Update" });
+	btn.addEventListener("click", (evt) => {
+		evt.preventDefault();
+		evt.stopPropagation();
+		btn.disabled = true;
+		void updateDeckNoteProperties(plugin, file, deck).then(
+			(changed) => {
+				bar.remove();
+				new Notice(changed.length ? `ChronoCCG: updated ${changed.join(", ")}.` : "ChronoCCG: properties are already up to date.");
+			},
+			(err: Error) => {
+				btn.disabled = false;
+				new Notice(`ChronoCCG: could not update properties — ${err.message}`);
+			},
+		);
+	});
 }
 
 function tile(plugin: ChronoCCGPlugin, parent: HTMLElement, card: Card, count?: number): void {

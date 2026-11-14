@@ -891,3 +891,22 @@ body.is-mobile button.chrono-builder-diver-btn { padding: 2px 10px; }
 /* ---- Mobile tweaks ---- */
 .is-mobile .chrono-card-tile img { max-width: 140px; }
 .is-mobile .chrono-deck-block { padding: 12px; }
+
+/* ---- Deck note properties out of date ---- */
+.chrono-deck-outdated {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 6px 0;
+	padding: 6px 10px;
+	border-radius: 8px;
+	background: var(--background-modifier-hover);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+.chrono-deck-outdated button {
+	font-size: var(--font-ui-smaller);
+	height: auto;
+	padding: 2px 10px;
+}
