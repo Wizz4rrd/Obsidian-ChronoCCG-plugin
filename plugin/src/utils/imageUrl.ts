@@ -26,3 +26,13 @@ function isAllowedImageUrl(value: string): boolean {
 		return false;
 	}
 }
+
+/** Image URL of every card that has one, in the selected style. */
+export function cardImageUrls(cards: readonly Card[], settings: ChronoSettings): string[] {
+	const urls = new Set<string>();
+	for (const card of cards) {
+		const url = resolveCardImageUrl(card, settings);
+		if (url) urls.add(url);
+	}
+	return Array.from(urls);
+}

@@ -84,9 +84,10 @@ The plugin only goes online to get the card list and the card images, from the o
 | At startup, if the card list is older than the refresh interval (7 days by default) | Downloads the card list (one file per set) | `cdn.playchrono.com` |
 | When you run "Refresh card database" | Same | `cdn.playchrono.com` |
 | The first time a card image is shown | Downloads the image (about 1.3 MB) | `cdn.playchrono.com` |
+| When you click "Download all card images" in the settings | Downloads every card image that isn't saved yet | `cdn.playchrono.com` |
 | If you set a custom data URL | Downloads the card list | Your URL |
 
-The card list (`card-cache.json`) and the images (`image-cache/`) are saved in the plugin folder, so each image is only downloaded once and everything you've already seen works offline. Saved images are shrunk to 400px wide WebP (about 35 KB each, roughly 14 MB for all 390 deck-legal cards). You can turn off saving images or clear them in the settings. With saving turned off, the full-size image is loaded every time. Set the auto-refresh interval to `0` to turn off the automatic download. If you pick the "Bundled" source it never downloads anything, but you only get a placeholder card.
+The card list (`card-cache.json`) and the images (`image-cache/`) are saved in the plugin folder, so each image is only downloaded once and everything you've already seen works offline. Saved images are shrunk to 400px wide WebP (about 35 KB each, roughly 14 MB for all 390 deck-legal cards). To have every card offline at once, use "Download all card images" in the settings: it downloads the missing ones (a few at a time, you can cancel) and saves the same 400px copies. You can turn off saving images or clear them in the settings. With saving turned off, the full-size image is loaded every time. Set the auto-refresh interval to `0` to turn off the automatic download. If you pick the "Bundled" source it never downloads anything, but you only get a placeholder card.
 
 ## Plans
 

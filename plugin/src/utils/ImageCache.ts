@@ -4,11 +4,24 @@ import { fitWidth, pngSize } from "./imageSize";
 
 const CACHE_DIR = "image-cache";
 const MAX_PARALLEL_DOWNLOADS = 6;
-/** Cached copies are shrunk to this width (official renders are 1640px wide, ~1.7 MB each). */
+/** "Download all" leaves the other download slots to the images on screen. */
+const DOWNLOAD_ALL_PARALLEL = 4;
+/** Cached copies are shrunk to this width (official renders are 1640px wide, ~1.3 MB each). */
 export const CACHED_IMAGE_WIDTH = 400;
+/** Rough sizes for the "download all" estimate: an official render, and its cached copy. */
+export const ORIGINAL_IMAGE_KB = 1300;
+export const CACHED_IMAGE_KB = 35;
 const WEBP_QUALITY = 0.85;
 /** Start loading an image this far before it scrolls into view. */
 const PRELOAD_MARGIN = "400px";
+
+export interface DownloadProgress {
+	done: number;
+	total: number;
+	failed: number;
+	running: boolean;
+	cancelled: boolean;
+}
 
 /**
  * Keeps a shrunk copy of every card image in the plugin folder, so each image is
@@ -36,6 +49,8 @@ export class ImageCache {
 	private encoding: { type: string; ext: string } | null = null;
 	private observers = new WeakMap<Window, IntersectionObserver>();
 	private onVisible = new WeakMap<Element, () => void>();
+	private job: { progress: DownloadProgress; controller: AbortController } | null = null;
+	private downloadListeners = new Set<(p: DownloadProgress) => void>();
 
 	init(plugin: ChronoCCGPlugin): void {
 		this.plugin = plugin;
@@ -70,6 +85,53 @@ export class ImageCache {
 		container.querySelectorAll("img.is-loading").forEach((img) => {
 			if (this.onVisible.delete(img)) observer?.unobserve(img);
 		});
+	}
+
+	/** How many of `urls` are saved. */
+	async savedCount(urls: string[]): Promise<number> {
+		await this.loadIndex();
+		return new Set(urls.filter((u) => this.onDisk.has(this.fileName(u)))).size;
+	}
+
+	/** Progress of the running (or last) {@link downloadAll}. */
+	get downloadProgress(): DownloadProgress | null {
+		return this.job ? { ...this.job.progress } : null;
+	}
+
+	/** Get told about {@link downloadAll} progress. Returns the unsubscribe function. */
+	onDownloadProgress(listener: (p: DownloadProgress) => void): () => void {
+		this.downloadListeners.add(listener);
+		return () => this.downloadListeners.delete(listener);
+	}
+
+	/** Download and shrink every image in `urls` that isn't saved yet, a few at a time. */
+	async downloadAll(urls: string[]): Promise<DownloadProgress> {
+		if (this.job?.progress.running) return { ...this.job.progress };
+		await this.loadIndex();
+		const todo = Array.from(new Set(urls)).filter((u) => u.startsWith("https://") && !this.onDisk.has(this.fileName(u)));
+		const job = { progress: { done: 0, total: todo.length, failed: 0, running: true, cancelled: false }, controller: new AbortController() };
+		this.job = job;
+		const emit = () => this.downloadListeners.forEach((l) => l({ ...job.progress }));
+		emit();
+		const generation = this.generation;
+		const stopped = () => job.controller.signal.aborted || generation !== this.generation;
+		const worker = async () => {
+			for (let url = todo.shift(); url && !stopped(); url = todo.shift()) {
+				if (!(await this.fetch(url))) job.progress.failed++;
+				job.progress.done++;
+				emit();
+			}
+		};
+		await Promise.all(Array.from({ length: DOWNLOAD_ALL_PARALLEL }, worker));
+		job.progress.running = false;
+		job.progress.cancelled = stopped();
+		emit();
+		return { ...job.progress };
+	}
+
+	/** Stop {@link downloadAll} after the images being downloaded right now. */
+	cancelDownload(): void {
+		this.job?.controller.abort();
 	}
 
 	async stats(): Promise<{ files: number; bytes: number }> {

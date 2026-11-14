@@ -1,8 +1,10 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, ButtonComponent, PluginSettingTab, Setting } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { DataSourceId } from "../data/DataSync";
 import { BuilderDraft, emptyDeck } from "../ui/DeckBuilderView";
-import { CACHED_IMAGE_WIDTH, imageCache } from "../utils/ImageCache";
+import { ConfirmModal } from "../ui/ConfirmModal";
+import { CACHED_IMAGE_KB, CACHED_IMAGE_WIDTH, DownloadProgress, imageCache, ORIGINAL_IMAGE_KB } from "../utils/ImageCache";
+import { cardImageUrls } from "../utils/imageUrl";
 
 /** Full card render (frame, stats and text on the image) vs illustration only. */
 export type CardImageStyle = "game" | "full";
@@ -47,13 +49,21 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 };
 
 export class ChronoSettingsTab extends PluginSettingTab {
+	private stopListening: (() => void) | null = null;
+
 	constructor(app: App, private plugin: ChronoCCGPlugin) {
 		super(app, plugin);
+	}
+
+	hide(): void {
+		this.stopListening?.();
+		this.stopListening = null;
 	}
 
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		this.stopListening?.();
 		const s = this.plugin.settings;
 		const save = () => this.plugin.saveSettings();
 
@@ -132,8 +142,42 @@ export class ChronoSettingsTab extends PluginSettingTab {
 				t.setValue(s.cacheImages).onChange(async (v) => {
 					s.cacheImages = v;
 					await save();
+					showDownload(imageCache.downloadProgress);
 				}),
 			);
+
+		const urls = cardImageUrls(this.plugin.cards.all(), s);
+		const downloadSetting = new Setting(containerEl).setName("Download all card images");
+		let downloadBtn!: ButtonComponent;
+		downloadSetting.addButton((b) => {
+			downloadBtn = b;
+			b.onClick(() => {
+				if (imageCache.downloadProgress?.running) imageCache.cancelDownload();
+				else void this.confirmDownloadAll(urls);
+			});
+		});
+		const downloadText = (saved: number, missing: number): string => {
+			if (!s.cacheImages) return 'Turn on "Save card images" first.';
+			if (!urls.length) return "No card data yet.";
+			if (!missing) return `All ${urls.length} card images are saved.`;
+			return (
+				`${saved} of ${urls.length} card images are saved. Download the other ${missing} now, so every card also shows offline. ` +
+				`They are shrunk to ${CACHED_IMAGE_WIDTH}px like the others.`
+			);
+		};
+		const showDownload = (p: DownloadProgress | null) => {
+			if (p?.running) {
+				downloadSetting.setDesc(`Downloading… ${p.done}/${p.total}${p.failed ? ` (${p.failed} failed)` : ""}`);
+				downloadBtn.setButtonText("Cancel").removeCta().setDisabled(false);
+				return;
+			}
+			void imageCache.savedCount(urls).then((saved) => {
+				const missing = urls.length - saved;
+				downloadSetting.setDesc(downloadText(saved, missing));
+				downloadBtn.setButtonText("Download").setCta().setDisabled(!s.cacheImages || missing === 0);
+			});
+		};
+		showDownload(imageCache.downloadProgress);
 
 		const cacheSetting = new Setting(containerEl)
 			.setName("Clear saved images")
@@ -149,8 +193,14 @@ export class ChronoSettingsTab extends PluginSettingTab {
 					}
 				}),
 			);
-		void imageCache.stats().then(({ files, bytes }) => {
-			cacheSetting.setDesc(`${files} image(s), ${(bytes / 1024 / 1024).toFixed(1)} MB.`);
+		const showStats = () =>
+			void imageCache.stats().then(({ files, bytes }) => {
+				cacheSetting.setDesc(`${files} image(s), ${(bytes / 1024 / 1024).toFixed(1)} MB.`);
+			});
+		showStats();
+		this.stopListening = imageCache.onDownloadProgress((p) => {
+			showDownload(p);
+			if (!p.running) showStats();
 		});
 
 		new Setting(containerEl).setName("Display").setHeading();
@@ -166,6 +216,8 @@ export class ChronoSettingsTab extends PluginSettingTab {
 					.onChange(async (v) => {
 						s.cardImageStyle = v as CardImageStyle;
 						await save();
+						// Each style has its own images to download.
+						this.display();
 					}),
 			);
 
@@ -236,5 +288,19 @@ export class ChronoSettingsTab extends PluginSettingTab {
 					await save();
 				}),
 			);
+	}
+
+	private async confirmDownloadAll(urls: string[]): Promise<void> {
+		const missing = urls.length - (await imageCache.savedCount(urls));
+		if (!missing) return;
+		const mb = (kb: number) => Math.max(1, Math.round((missing * kb) / 1024));
+		new ConfirmModal(this.app, {
+			title: "Download all card images",
+			message:
+				`This downloads ${missing} card images (about ${mb(ORIGINAL_IMAGE_KB)} MB) and keeps a ${CACHED_IMAGE_WIDTH}px copy of each ` +
+				`(about ${mb(CACHED_IMAGE_KB)} MB in the plugin folder). You can keep using Obsidian while it runs.`,
+			cta: "Download",
+			onConfirm: () => void this.plugin.downloadAllCardImages(),
+		}).open();
 	}
 }
