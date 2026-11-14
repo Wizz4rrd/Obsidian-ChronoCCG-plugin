@@ -2,7 +2,7 @@
 	"id": "chronoccg",
 	"name": "ChronoCCG",
 	"version": "0.1.0",
-	"minAppVersion": "1.5.0",
+	"minAppVersion": "1.14.4",
 	"description": "Browse ChronoCCG cards, build and validate decks, and write deck, matchup and tournament notes.",
 	"author": "Merlin Deramaix",
 	"authorUrl": "https://github.com/Wizz4rrd",

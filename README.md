@@ -75,6 +75,7 @@ Saving a deck note from the deck builder also adds a line to its "Changelog" sec
 
 ### Limitations
 
+- Needs Obsidian 1.14.4 or later.
 - Mobile (iPad, Android tablets, phones) is not tested yet. The deck builder has a touch layout for tablets, but expect rough edges on mobile, and please report what you find.
 
 ## Network use
