@@ -3,7 +3,7 @@ import type ChronoCCGPlugin from "../../main";
 import { sortEntries } from "../data/DeckExport";
 import { parseDeckSource, ParsedDeck } from "../data/DeckParser";
 import { deckStats, validateDeck } from "../data/DeckRules";
-import { findFirstDeckBlock } from "../data/deckInput";
+import { findDeckBlockByBody, findFirstDeckBlock } from "../data/deckInput";
 import { Card } from "../data/types";
 import { attachCardPreview } from "../ui/CardPreview";
 import { renderCardTile, renderUnknownCardTile } from "../ui/CardTile";
@@ -195,17 +195,9 @@ async function locateBlock(
 	source: string,
 ): Promise<DeckSourceLink | undefined> {
 	const section = ctx.getSectionInfo(el);
-	if (section) return { path: ctx.sourcePath, lineStart: section.lineStart, lineEnd: section.lineEnd };
+	if (section) return { path: ctx.sourcePath, lineStart: section.lineStart, lineEnd: section.lineEnd, body: source };
 	const file = plugin.app.vault.getAbstractFileByPath(ctx.sourcePath);
 	if (!(file instanceof TFile)) return undefined;
-	const lines = (await plugin.app.vault.cachedRead(file)).split("\n");
-	const want = source.trim();
-	for (let i = 0; i < lines.length; i++) {
-		if (!/^(`{3,}|~{3,})\s*chrono-deck\b/.test(lines[i].trim())) continue;
-		const end = lines.findIndex((l, j) => j > i && /^(`{3,}|~{3,})\s*$/.test(l.trim()));
-		if (end < 0) break;
-		if (lines.slice(i + 1, end).join("\n").trim() === want) return { path: file.path, lineStart: i, lineEnd: end };
-		i = end;
-	}
-	return undefined;
+	const range = findDeckBlockByBody((await plugin.app.vault.cachedRead(file)).split("\n"), source);
+	return range ? { path: file.path, lineStart: range.start, lineEnd: range.end, body: source } : undefined;
 }

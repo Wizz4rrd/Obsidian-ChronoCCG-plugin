@@ -110,8 +110,8 @@ export default class ChronoCCGPlugin extends Plugin {
 				if (!range || !ctx.file) return false;
 				if (!checking) {
 					const lines = editor.getValue().split("\n");
-					const deck = parseDeck(this, lines.slice(range.start + 1, range.end).join("\n"));
-					void this.openDeckInBuilder(deck, { path: ctx.file.path, lineStart: range.start, lineEnd: range.end });
+					const body = lines.slice(range.start + 1, range.end).join("\n");
+					void this.openDeckInBuilder(parseDeck(this, body), { path: ctx.file.path, lineStart: range.start, lineEnd: range.end, body });
 				}
 				return true;
 			},

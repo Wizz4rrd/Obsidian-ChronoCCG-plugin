@@ -25,6 +25,8 @@ export interface ChronoSettings {
 	notesFolder: string;
 	/** Optional folder with user templates overriding the built-in ones. */
 	templateFolder: string;
+	/** Log deck builder saves in the deck note's Changelog section. */
+	deckChangelog: boolean;
 	/** Deck builder state, persisted between sessions. */
 	builderDraft: BuilderDraft;
 }
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 	hoverPreviews: true,
 	notesFolder: "ChronoCCG",
 	templateFolder: "",
+	deckChangelog: true,
 	builderDraft: { deck: emptyDeck() },
 };
 
@@ -219,6 +222,19 @@ export class ChronoSettingsTab extends PluginSettingTab {
 						s.templateFolder = v.trim().replace(/\/+$/, "");
 						await save();
 					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Log deck changes")
+			.setDesc(
+				'When you save a deck note from the deck builder, add what changed (cards, Divers, name) to the note\'s "Changelog" section. ' +
+					"Saves on the same day are merged into one line.",
+			)
+			.addToggle((t) =>
+				t.setValue(s.deckChangelog).onChange(async (v) => {
+					s.deckChangelog = v;
+					await save();
+				}),
 			);
 	}
 }
