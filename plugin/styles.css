@@ -218,7 +218,7 @@
 	border-color: var(--interactive-accent);
 }
 .chrono-browser-filters-panel {
-	flex: 1 1 42%;
+	flex: 0 0 var(--chrono-filters-size, 42%);
 	min-height: 0;
 	overflow-y: auto;
 	overflow-x: hidden;
@@ -337,8 +337,36 @@
 	border-bottom: 1px solid var(--background-modifier-border);
 	background: var(--background-primary);
 }
+/* Drag handle between the filters and the cards. */
+.chrono-browser-resize {
+	flex-shrink: 0;
+	height: 7px;
+	margin: -4px 0 -3px;
+	position: relative;
+	z-index: 1;
+	cursor: row-resize;
+	touch-action: none;
+}
+.chrono-browser-resize::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 2px;
+	width: 36px;
+	height: 3px;
+	margin-left: -18px;
+	border-radius: 2px;
+	background: var(--background-modifier-border);
+	transition: background-color 120ms ease;
+}
+.chrono-browser-resize:hover::after,
+.chrono-browser-resize:focus-visible::after,
+.chrono-browser-resize.is-dragging::after {
+	background: var(--interactive-accent);
+}
+.chrono-browser-resize:focus-visible { outline: none; }
 .chrono-browser-results {
-	flex: 1 1 58%;
+	flex: 1 1 0;
 	min-height: 0;
 	overflow-y: auto;
 	overflow-x: hidden;

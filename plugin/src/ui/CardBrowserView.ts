@@ -1,5 +1,6 @@
 import { debounce, ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
+import { DEFAULT_SETTINGS } from "../settings/SettingsTab";
 import { isDiverEligible } from "../data/DeckRules";
 import { Card, SYNDICATES, Syndicate } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
@@ -8,6 +9,10 @@ import { renderSyndicateIcon } from "./SyndicateIcon";
 import { imageCache } from "../utils/ImageCache";
 
 export const VIEW_TYPE_CARD_BROWSER = "chronoccg-card-browser";
+
+/** Limits of the filters' share of the pane, so neither side can be dragged away. */
+const MIN_FILTERS_PERCENT = 10;
+const MAX_FILTERS_PERCENT = 85;
 
 function parseCostInput(value: string): number | undefined {
 	const t = value.trim();
@@ -110,10 +115,66 @@ export class CardBrowserView extends ItemView {
 		this.clearBtn = actions.createEl("button", { cls: "chrono-browser-clear", text: "Clear filters" });
 		this.clearBtn.addEventListener("click", () => this.clearAllFilters());
 
+		this.addResizeHandle(workspace, filtersPanel);
 		this.statusEl = workspace.createDiv({ cls: "chrono-browser-status" });
 		this.resultsEl = workspace.createDiv({ cls: "chrono-browser-results" });
 
 		this.refresh();
+	}
+
+	/** Drag handle between the filters and the cards (mouse, touch and arrow keys; double-click resets it). */
+	private addResizeHandle(workspace: HTMLElement, filtersPanel: HTMLElement): void {
+		const s = this.plugin.settings;
+		const apply = (percent: number) => {
+			s.browserFiltersPercent = Math.round(Math.min(MAX_FILTERS_PERCENT, Math.max(MIN_FILTERS_PERCENT, percent)) * 10) / 10;
+			filtersPanel.setCssProps({ "--chrono-filters-size": `${s.browserFiltersPercent}%` });
+			handle.setAttr("aria-valuenow", String(Math.round(s.browserFiltersPercent)));
+		};
+		const save = () => void this.plugin.saveSettings();
+		const handle = workspace.createDiv({
+			cls: "chrono-browser-resize",
+			attr: {
+				role: "separator",
+				tabindex: "0",
+				"aria-orientation": "horizontal",
+				"aria-label": "Resize filters",
+				"aria-valuemin": String(MIN_FILTERS_PERCENT),
+				"aria-valuemax": String(MAX_FILTERS_PERCENT),
+			},
+		});
+		apply(s.browserFiltersPercent);
+
+		handle.addEventListener("pointerdown", (evt) => {
+			if (evt.button !== 0) return;
+			evt.preventDefault();
+			handle.setPointerCapture(evt.pointerId);
+			handle.addClass("is-dragging");
+			const startY = evt.clientY;
+			const startHeight = filtersPanel.getBoundingClientRect().height;
+			const total = workspace.getBoundingClientRect().height || 1;
+			const move = (e: PointerEvent) => apply(((startHeight + e.clientY - startY) / total) * 100);
+			const end = () => {
+				handle.removeClass("is-dragging");
+				handle.removeEventListener("pointermove", move);
+				handle.removeEventListener("pointerup", end);
+				handle.removeEventListener("pointercancel", end);
+				save();
+			};
+			handle.addEventListener("pointermove", move);
+			handle.addEventListener("pointerup", end);
+			handle.addEventListener("pointercancel", end);
+		});
+		handle.addEventListener("dblclick", () => {
+			apply(DEFAULT_SETTINGS.browserFiltersPercent);
+			save();
+		});
+		handle.addEventListener("keydown", (evt) => {
+			const step = evt.key === "ArrowUp" ? -5 : evt.key === "ArrowDown" ? 5 : 0;
+			if (!step) return;
+			evt.preventDefault();
+			apply(s.browserFiltersPercent + step);
+			save();
+		});
 	}
 
 	async onClose(): Promise<void> {
