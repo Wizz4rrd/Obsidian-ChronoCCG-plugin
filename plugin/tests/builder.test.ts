@@ -14,7 +14,7 @@ function repo(cards: Card[]): CardRepository {
 	return r;
 }
 
-const noFilters: PoolFilters = { query: "", syndicates: new Set(), type: "", cost: null, onlyPlayable: true };
+const noFilters: PoolFilters = { query: "", syndicates: new Set(), type: "", costs: new Set(), onlyPlayable: true };
 
 test("the pool is only rebuilt when the Divers' syndicates change", () => {
 	const cards = repo([card(1, { syndicates: ["Silence"] }), card(2, { syndicates: ["Sungrace"] }), card(3)]);
@@ -44,8 +44,13 @@ test("pool shows deck-legal cards of the Divers' syndicates, cheapest first", ()
 		[1, 2, 11, 10, 14],
 	);
 	assert.deepEqual(
-		poolCards(cards, deck, { ...noFilters, cost: 7 }).map((c) => c.id),
+		poolCards(cards, deck, { ...noFilters, costs: new Set([7]) }).map((c) => c.id),
 		[14],
+	);
+	// Several costs at once; 7 stands for 7 and above.
+	assert.deepEqual(
+		poolCards(cards, deck, { ...noFilters, costs: new Set([2, 7]) }).map((c) => c.id),
+		[11, 10, 14],
 	);
 	assert.ok(poolCards(cards, deck, { ...noFilters, onlyPlayable: false }).some((c) => c.id === 13));
 });

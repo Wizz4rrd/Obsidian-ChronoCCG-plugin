@@ -7,12 +7,10 @@ export interface PoolFilters {
 	query: string;
 	syndicates: ReadonlySet<Syndicate>;
 	type: string;
-	/** Exact cost, or {@link POOL_COST_MAX} and above. */
-	cost: number | null;
+	/** Costs to show (any of them, 7 meaning 7+); empty for all. */
+	costs: ReadonlySet<number>;
 	onlyPlayable: boolean;
 }
-
-export const POOL_COST_MAX = 7;
 
 /** Syndicates "Only cards playable with my Divers" limits the pool to, or null when it doesn't apply. */
 export function playableSyndicates(deck: Deck, cards: CardLookup, onlyPlayable: boolean): Set<Syndicate> | null {
@@ -36,8 +34,7 @@ export function poolCards(repo: CardRepository, deck: Deck, f: PoolFilters): Car
 			text: f.query || undefined,
 			syndicates,
 			types: f.type ? [f.type] : undefined,
-			minCost: f.cost ?? undefined,
-			maxCost: f.cost === null || f.cost === POOL_COST_MAX ? undefined : f.cost,
+			costs: f.costs,
 		},
 		2000,
 	);

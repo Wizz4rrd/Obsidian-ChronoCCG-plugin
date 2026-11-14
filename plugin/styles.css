@@ -176,47 +176,6 @@
 .chrono-browser-search::placeholder {
 	color: var(--text-faint);
 }
-.chrono-filter-cost {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
-	font-size: var(--font-ui-smaller);
-	color: var(--text-muted);
-}
-.chrono-filter-cost--panel {
-	width: 100%;
-	flex-wrap: nowrap;
-	gap: 10px;
-}
-.chrono-filter-cost--panel .chrono-filter-num {
-	flex: 1 1 0;
-	min-width: 0;
-	width: auto;
-}
-.chrono-filter-label {
-	font-weight: 600;
-	color: var(--text-normal);
-	margin-right: 2px;
-}
-.chrono-filter-cost-sep {
-	opacity: 0.45;
-	user-select: none;
-	flex-shrink: 0;
-}
-.chrono-filter-num {
-	min-width: 2.75rem;
-	padding: 6px 8px;
-	border-radius: 8px;
-	border: 1px solid var(--background-modifier-border);
-	background: var(--background-primary);
-	color: var(--text-normal);
-	font-size: var(--font-ui-small);
-}
-.chrono-filter-num:focus {
-	outline: none;
-	border-color: var(--interactive-accent);
-}
 .chrono-browser-filters-panel {
 	flex: 0 0 var(--chrono-filters-size, 42%);
 	min-height: 0;

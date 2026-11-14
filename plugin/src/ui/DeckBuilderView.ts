@@ -1,6 +1,6 @@
 import { debounce, ItemView, Notice, Platform, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
-import { POOL_COST_MAX, poolCards, poolCardState, poolScopeKey } from "../data/BuilderPool";
+import { poolCards, poolCardState, poolScopeKey } from "../data/BuilderPool";
 import { decodeDeck } from "../data/DeckCodec";
 import { sortEntries, toCodeBlock } from "../data/DeckExport";
 import { deckStats, DIVER_COUNT, isDiverEligible, MAIN_DECK_SIZE, MAX_COPIES, validateDeck } from "../data/DeckRules";
@@ -10,6 +10,7 @@ import { Card, Deck, Syndicate, SYNDICATES } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
 import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, renderUnknownDeckRow, showExportMenu } from "./DeckWidgets";
+import { renderCostChips } from "./CostChips";
 import { renderSyndicateIcon } from "./SyndicateIcon";
 import { TextPromptModal } from "./TextPromptModal";
 import { parseDeck } from "../markdown/DeckCodeBlock";
@@ -51,7 +52,7 @@ export class DeckBuilderView extends ItemView {
 	private query = "";
 	private poolSyndicates = new Set<Syndicate>();
 	private poolType = "";
-	private poolCost: number | null = null;
+	private poolCosts = new Set<number>();
 	private onlyPlayable = true;
 
 	private poolEl!: HTMLElement;
@@ -208,19 +209,7 @@ export class DeckBuilderView extends ItemView {
 			});
 			b.dataset.type = t;
 		}
-		const costRow = bar.createDiv({ cls: "chrono-filter-chips chrono-cost-chips" });
-		for (let c = 0; c <= POOL_COST_MAX; c++) {
-			const b = costRow.createEl("button", {
-				cls: "chrono-filter-chip chrono-cost-chip",
-				text: c === POOL_COST_MAX ? `${c}+` : String(c),
-			});
-			b.addEventListener("click", () => {
-				this.poolCost = this.poolCost === c ? null : c;
-				costRow.querySelectorAll(".chrono-cost-chip").forEach((el) => el.removeClass("is-active"));
-				b.toggleClass("is-active", this.poolCost === c);
-				this.renderPool();
-			});
-		}
+		renderCostChips(bar, this.poolCosts, () => this.renderPool());
 
 		const toggle = bar.createEl("label", { cls: "chrono-builder-toggle" });
 		const cb = toggle.createEl("input", { type: "checkbox" });
@@ -241,7 +230,7 @@ export class DeckBuilderView extends ItemView {
 			query: this.query,
 			syndicates: this.poolSyndicates,
 			type: this.poolType,
-			cost: this.poolCost,
+			costs: this.poolCosts,
 			onlyPlayable: this.onlyPlayable,
 		});
 
