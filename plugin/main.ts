@@ -20,7 +20,8 @@ import { TextPromptModal } from "./src/ui/TextPromptModal";
 import { imageCache } from "./src/utils/ImageCache";
 import { cardImageUrls } from "./src/utils/imageUrl";
 import { deckNoteFrontmatter, firstDeckBlockLink, updateDeckNoteProperties } from "./src/templates/DeckNoteSync";
-import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind } from "./src/templates/Templates";
+import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind, TournamentDeck } from "./src/templates/Templates";
+import { TournamentModal, TournamentOptions } from "./src/ui/TournamentModal";
 
 export default class ChronoCCGPlugin extends Plugin {
 	settings!: ChronoSettings;
@@ -190,27 +191,13 @@ export default class ChronoCCGPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "new-matchup-note",
-			name: "New matchup note",
-			callback: () =>
-				new TextPromptModal(this.app, {
-					title: "New matchup note — opponent",
-					placeholder: "e.g. Sungrace aggro",
-					cta: "Create",
-					onSubmit: (opponent) => void this.templates.createMatchupNote(this.activeDeckLink(), opponent),
-				}).open(),
-		});
-
-		this.addCommand({
 			id: "new-tournament-report",
 			name: "New tournament report",
-			callback: () =>
-				new TextPromptModal(this.app, {
-					title: "New tournament report — event name",
-					placeholder: "e.g. Weekly Dive #12",
-					cta: "Create",
-					onSubmit: (event) => void this.templates.createTournamentNote(event, this.activeDeckLink(), this.activeDeck()),
-				}).open(),
+			callback: () => {
+				const decks = this.deckNotes();
+				const active = this.app.workspace.getActiveFile();
+				new TournamentModal(this.app, decks, decks.find((f) => f === active) ?? null, (opts) => void this.newTournamentReport(opts)).open();
+			},
 		});
 	}
 
@@ -300,17 +287,23 @@ export default class ChronoCCGPlugin extends Plugin {
 	// ---- helpers -------------------------------------------------------------
 
 	/** "[[Deck note]]" when the active note is a deck note, else "". */
-	private activeDeckLink(): string {
-		const file = this.app.workspace.getActiveFile();
-		if (!file) return "";
-		const type: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter?.type;
-		return type === "chrono-deck" ? `[[${file.basename}]]` : "";
+	/** Deck notes (`type: chrono-deck`), by name. */
+	private deckNotes(): TFile[] {
+		return this.app.vault
+			.getMarkdownFiles()
+			.filter((file) => deckNoteFrontmatter(this.app, file))
+			.sort((a, b) => a.basename.localeCompare(b.basename));
 	}
 
-	/** First chrono-deck block of the active markdown note, if any. */
-	private activeDeck(): Deck | undefined {
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		return view ? this.firstDeck(view.editor.getValue()) : undefined;
+	private async newTournamentReport(opts: TournamentOptions): Promise<void> {
+		const decks: TournamentDeck[] = [];
+		for (const file of opts.decks) {
+			const link = this.app.fileManager.generateMarkdownLink(file, "");
+			decks.push({ link, deck: this.firstDeck(await this.app.vault.cachedRead(file)) });
+		}
+		// Decks without a note: named after the deck, with their decklist from the code.
+		for (const deck of opts.codeDecks) decks.push({ link: deck.name, deck });
+		await this.templates.createTournamentNote(opts.event, opts.format, opts.rounds, decks);
 	}
 
 	private firstDeck(text: string): Deck | undefined {
@@ -349,7 +342,8 @@ export default class ChronoCCGPlugin extends Plugin {
 			this.settings.templateFolder = folder;
 			await this.saveSettings();
 		}
-		new Notice(`ChronoCCG: wrote ${written} template(s) to ${folder}${written < 3 ? " (existing files kept)" : ""}.`);
+		const kept = written < Object.keys(TEMPLATE_FILE_NAMES).length ? " (existing files kept)" : "";
+		new Notice(`ChronoCCG: wrote ${written} template(s) to ${folder}${kept}.`);
 	}
 
 	/** Save a shrunk copy of every card image (in the selected style) that isn't saved yet. */

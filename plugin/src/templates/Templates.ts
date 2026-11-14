@@ -2,13 +2,13 @@ import { normalizePath, Notice, TFile } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { deckCode, toCodeBlock } from "../data/DeckExport";
 import { allowedSyndicates } from "../data/DeckRules";
+import { MatchFormat, tournamentRounds } from "../data/tournament";
 import { Deck } from "../data/types";
 
-export type TemplateKind = "deck" | "matchup" | "tournament";
+export type TemplateKind = "deck" | "tournament";
 
 export const TEMPLATE_FILE_NAMES: Record<TemplateKind, string> = {
 	deck: "Deck.md",
-	matchup: "Matchup.md",
 	tournament: "Tournament report.md",
 };
 
@@ -16,7 +16,8 @@ export const TEMPLATE_FILE_NAMES: Record<TemplateKind, string> = {
  * Built-in note templates. Users can override any of them by putting a file
  * with the same name (see TEMPLATE_FILE_NAMES) in the configured template
  * folder. Placeholders: {{name}} {{date}} {{deck}} {{code}} {{divers}}
- * {{syndicates}} {{deckLink}} {{opponent}} {{event}}.
+ * {{syndicates}}, and for tournament reports {{event}} {{format}} {{decks}}
+ * {{deckLinks}} {{decklists}} {{rounds}} ({{deckLink}} is the first deck).
  */
 export const DEFAULT_TEMPLATES: Record<TemplateKind, string> = {
 	deck: `---
@@ -50,59 +51,25 @@ Keep:
 ## Changelog
 - {{date}} — created
 `,
-	matchup: `---
-type: chrono-matchup
-deck: "{{deckLink}}"
-opponent: "{{opponent}}"
-wins: 0
-losses: 0
-created: {{date}}
-tags: [chronoccg/matchup]
----
-# {{name}}
-
-**My deck:** {{deckLink}}
-**Opponent:** {{opponent}}
-
-## Their key cards
-- \`chrono:\`
-
-## Mulligan
--
-
-## Game plan
-- Early:
-- Mid:
-- Late:
-
-## Game log
-| Date | Result | On the play? | Notes |
-| --- | --- | --- | --- |
-| {{date}} |  |  |  |
-`,
 	tournament: `---
 type: chrono-tournament
 event: "{{event}}"
 date: {{date}}
-deck: "{{deckLink}}"
+format: {{format}}
+decks: [{{decks}}]
 record: 0-0
 placement:
-tags: [chronoccg/tournament]
 ---
 # {{name}}
 
 **Event:** {{event}}
-**Deck:** {{deckLink}}
+**Format:** {{format}}
+**Decks:** {{deckLinks}}
 
-## Decklist
-{{deck}}
+## Decklists
+{{decklists}}
 ## Rounds
-| Round | Opponent | Their deck | Result | Notes |
-| --: | --- | --- | --- | --- |
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-
+{{rounds}}
 ## Takeaways
 - What worked:
 - What didn't:
@@ -110,12 +77,19 @@ tags: [chronoccg/tournament]
 `,
 };
 
+/** A deck brought to a tournament: the link to its note and its first deck block. */
+export interface TournamentDeck {
+	link: string;
+	deck?: Deck;
+}
+
 export interface TemplateVars {
 	name: string;
 	deck?: Deck;
-	deckLink?: string;
-	opponent?: string;
 	event?: string;
+	format?: MatchFormat;
+	rounds?: number;
+	decks?: TournamentDeck[];
 }
 
 export class NoteTemplates {
@@ -124,7 +98,9 @@ export class NoteTemplates {
 	async render(kind: TemplateKind, vars: TemplateVars): Promise<string> {
 		const template = (await this.readUserTemplate(kind)) ?? DEFAULT_TEMPLATES[kind];
 		const cards = this.plugin.cards;
-		const deck = vars.deck;
+		const decks = vars.decks ?? [];
+		// Older custom templates use {{deck}} / {{deckLink}}: the first deck.
+		const deck = vars.deck ?? decks[0]?.deck;
 		let code = "";
 		if (deck && deck.divers.length) {
 			try {
@@ -140,9 +116,13 @@ export class NoteTemplates {
 			code,
 			divers: deck ? deck.divers.map((id) => yamlQuote(cards.getById(id)?.name ?? String(id))).join(", ") : "",
 			syndicates: deck ? Array.from(allowedSyndicates(deck, cards)).join(", ") : "",
-			deckLink: vars.deckLink ?? "",
-			opponent: vars.opponent ?? "",
+			deckLink: decks[0]?.link ?? "",
 			event: vars.event ?? "",
+			format: vars.format ?? "",
+			decks: decks.map((d) => yamlQuote(d.link)).join(", "),
+			deckLinks: decks.map((d) => d.link).join(", "),
+			decklists: decks.map((d) => `### ${d.link}\n${d.deck ? toCodeBlock(d.deck, cards) : ""}`).join("\n"),
+			rounds: vars.format ? tournamentRounds(vars.format, vars.rounds ?? 3) : "",
 		};
 		return template.replace(/\{\{(\w+)\}\}/g, (m, key: string) => (key in values ? values[key] : m));
 	}
@@ -177,14 +157,9 @@ export class NoteTemplates {
 		return this.createNote("deck", { name: deck.name || "Untitled deck", deck }, "Decks");
 	}
 
-	createMatchupNote(deckLink: string, opponent: string): Promise<TFile | null> {
-		const mine = deckLink.replace(/^\[\[|\]\]$/g, "") || "My deck";
-		return this.createNote("matchup", { name: `${mine} vs ${opponent}`, deckLink, opponent }, "Matchups");
-	}
-
-	createTournamentNote(event: string, deckLink: string, deck?: Deck): Promise<TFile | null> {
+	createTournamentNote(event: string, format: MatchFormat, rounds: number, decks: TournamentDeck[]): Promise<TFile | null> {
 		const name = `${today()} ${event}`;
-		return this.createNote("tournament", { name, event, deckLink, deck }, "Tournaments");
+		return this.createNote("tournament", { name, event, format, rounds, decks }, "Tournaments");
 	}
 }
 
