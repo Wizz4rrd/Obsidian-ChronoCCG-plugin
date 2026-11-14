@@ -1,14 +1,16 @@
 import { debounce, ItemView, Notice, Platform, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
+import { POOL_COST_MAX, poolCards, poolCardState, poolScopeKey } from "../data/BuilderPool";
 import { decodeDeck } from "../data/DeckCodec";
 import { sortEntries, toCodeBlock } from "../data/DeckExport";
-import { allowedSyndicates, deckStats, DIVER_COUNT, isDiverEligible, MAIN_DECK_SIZE, MAX_COPIES, validateDeck } from "../data/DeckRules";
+import { deckStats, DIVER_COUNT, isDiverEligible, MAIN_DECK_SIZE, MAX_COPIES, validateDeck } from "../data/DeckRules";
 import { unwrapDeckCode } from "../data/deckInput";
 import { Card, Deck, Syndicate, SYNDICATES } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
 import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, renderUnknownDeckRow, showExportMenu } from "./DeckWidgets";
 import { TextPromptModal } from "./TextPromptModal";
+import { imageCache } from "../utils/ImageCache";
 
 export const VIEW_TYPE_DECK_BUILDER = "chronoccg-deck-builder";
 
@@ -28,6 +30,16 @@ export function emptyDeck(): Deck {
 	return { name: "", divers: [], entries: [] };
 }
 
+/** A card shown in the pool, kept so deck edits can update it in place. */
+interface PoolTile {
+	card: Card;
+	tile: HTMLElement;
+	badge: HTMLElement | null;
+	/** Hidden once the card is a Diver. */
+	diverEl: HTMLElement | null;
+	state: string;
+}
+
 export class DeckBuilderView extends ItemView {
 	private query = "";
 	private poolSyndicates = new Set<Syndicate>();
@@ -39,8 +51,12 @@ export class DeckBuilderView extends ItemView {
 	private poolStatusEl!: HTMLElement;
 	private deckEl!: HTMLElement;
 	private syndicateBtns = new Map<Syndicate, HTMLElement>();
+	private poolTiles: PoolTile[] = [];
+	/** {@link poolScopeKey} the pool was last rendered for. */
+	private poolScope = "";
 
 	private persist = debounce(() => void this.plugin.saveSettings(), 400, true);
+	private renderPoolSoon = debounce(() => this.renderPool(), 150, true);
 
 	constructor(leaf: WorkspaceLeaf, private plugin: ChronoCCGPlugin) {
 		super(leaf);
@@ -85,11 +101,15 @@ export class DeckBuilderView extends ItemView {
 		await this.plugin.saveSettings();
 	}
 
-	/** Re-render both panes (cheap: a few hundred cards). */
+	/** Re-render both panes, e.g. after the card data changed. */
 	refresh(): void {
 		if (!this.poolEl) return;
 		this.renderPool();
 		this.renderDeck();
+		this.updateHeader();
+	}
+
+	private updateHeader(): void {
 		(this.leaf as unknown as { updateHeader?: () => void }).updateHeader?.();
 	}
 
@@ -136,9 +156,14 @@ export class DeckBuilderView extends ItemView {
 		this.changed();
 	}
 
+	/** After a deck edit: the pool is only rebuilt when the cards it shows change. */
 	private changed(): void {
 		this.persist();
-		this.refresh();
+		if (!this.poolEl) return;
+		this.renderDeck();
+		if (poolScopeKey(this.deck, this.plugin.cards, this.onlyPlayable) !== this.poolScope) this.renderPool();
+		else for (const t of this.poolTiles) this.updatePoolTile(t);
+		this.updateHeader();
 	}
 
 	// ---- card pool -------------------------------------------------------
@@ -148,7 +173,7 @@ export class DeckBuilderView extends ItemView {
 		const search = bar.createEl("input", { type: "search", cls: "chrono-browser-search", placeholder: "Search name, keyword, type, 2/3…" });
 		search.addEventListener("input", () => {
 			this.query = search.value;
-			this.renderPool();
+			this.renderPoolSoon();
 		});
 
 		const chips = bar.createDiv({ cls: "chrono-filter-chips" });
@@ -175,8 +200,11 @@ export class DeckBuilderView extends ItemView {
 			b.dataset.type = t;
 		}
 		const costRow = bar.createDiv({ cls: "chrono-filter-chips chrono-cost-chips" });
-		for (let c = 0; c <= 7; c++) {
-			const b = costRow.createEl("button", { cls: "chrono-filter-chip chrono-cost-chip", text: c === 7 ? "7+" : String(c) });
+		for (let c = 0; c <= POOL_COST_MAX; c++) {
+			const b = costRow.createEl("button", {
+				cls: "chrono-filter-chip chrono-cost-chip",
+				text: c === POOL_COST_MAX ? `${c}+` : String(c),
+			});
 			b.addEventListener("click", () => {
 				this.poolCost = this.poolCost === c ? null : c;
 				costRow.querySelectorAll(".chrono-cost-chip").forEach((el) => el.removeClass("is-active"));
@@ -196,22 +224,17 @@ export class DeckBuilderView extends ItemView {
 	}
 
 	private renderPool(): void {
+		imageCache.forget(this.poolEl);
 		this.poolEl.empty();
-		const allowed = allowedSyndicates(this.deck, this.plugin.cards);
-		const restrict = this.onlyPlayable && this.deck.divers.length >= DIVER_COUNT && allowed.size > 0;
-		const syndicates = this.poolSyndicates.size ? Array.from(this.poolSyndicates) : restrict ? Array.from(allowed) : undefined;
-		let cards = this.plugin.cards.search(
-			{
-				text: this.query || undefined,
-				syndicates,
-				types: this.poolType ? [this.poolType] : undefined,
-				minCost: this.poolCost ?? undefined,
-				maxCost: this.poolCost === null || this.poolCost === 7 ? undefined : this.poolCost,
-			},
-			2000,
-		);
-		if (restrict) cards = cards.filter((c) => c.syndicates.some((s) => allowed.has(s)));
-		cards = cards.filter((c) => c.collectible !== false).sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
+		this.poolTiles = [];
+		this.poolScope = poolScopeKey(this.deck, this.plugin.cards, this.onlyPlayable);
+		const cards = poolCards(this.plugin.cards, this.deck, {
+			query: this.query,
+			syndicates: this.poolSyndicates,
+			type: this.poolType,
+			cost: this.poolCost,
+			onlyPlayable: this.onlyPlayable,
+		});
 
 		const shown = cards.slice(0, 300);
 		const howTo = Platform.isMobile ? "tap to add, ⓘ for details" : "click to add";
@@ -222,23 +245,21 @@ export class DeckBuilderView extends ItemView {
 			this.poolStatusEl.setText('No card data yet — run "ChronoCCG: Refresh card database".');
 		}
 
-		const counts = new Map(this.deck.entries.map((e) => [e.id, e.count]));
-		for (const card of shown) {
-			const tile = renderCardTile(this.poolEl, card, this.plugin.settings, { size: "thumb" });
-			tile.addClass("chrono-builder-card");
-			const inDeck = counts.get(card.id) ?? 0;
-			const isDiver = this.deck.divers.includes(card.id);
-			if (inDeck) tile.createDiv({ cls: "chrono-builder-incount", text: `${inDeck}/${MAX_COPIES}` });
-			if (isDiver) tile.createDiv({ cls: "chrono-builder-incount is-diver", text: "Diver" });
-			if (inDeck >= MAX_COPIES || isDiver) tile.addClass("is-maxed");
-			attachCardPreview(this.plugin, tile.querySelector(".chrono-card-tile-visual") as HTMLElement, card);
-			tile.addEventListener("click", () => this.addCard(card, false));
-			tile.addEventListener("contextmenu", (evt) => {
-				evt.preventDefault();
-				this.removeOne(card.id);
-			});
-			const canDive = isDiverEligible(card) && !isDiver;
-			if (!canDive && !Platform.isMobile) continue;
+		for (const card of shown) this.poolTiles.push(this.renderPoolTile(card));
+	}
+
+	private renderPoolTile(card: Card): PoolTile {
+		const tile = renderCardTile(this.poolEl, card, this.plugin.settings, { size: "thumb" });
+		tile.addClass("chrono-builder-card");
+		attachCardPreview(this.plugin, tile.querySelector(".chrono-card-tile-visual") as HTMLElement, card);
+		tile.addEventListener("click", () => this.addCard(card, false));
+		tile.addEventListener("contextmenu", (evt) => {
+			evt.preventDefault();
+			this.removeOne(card.id);
+		});
+		const t: PoolTile = { card, tile, badge: null, diverEl: null, state: "" };
+		const canDive = isDiverEligible(card);
+		if (canDive || Platform.isMobile) {
 			const actions = tile.createDiv({ cls: "chrono-builder-card-actions" });
 			if (canDive) {
 				const b = actions.createEl("button", { cls: "chrono-builder-diver-btn", text: "Diver" });
@@ -246,6 +267,8 @@ export class DeckBuilderView extends ItemView {
 					evt.stopPropagation();
 					this.addCard(card, true);
 				});
+				// On desktop the button is the only action, so hide the whole row with it.
+				t.diverEl = Platform.isMobile ? b : actions;
 			}
 			// No hover preview on touch screens, and tapping the tile adds the card.
 			if (Platform.isMobile) {
@@ -257,6 +280,24 @@ export class DeckBuilderView extends ItemView {
 				});
 			}
 		}
+		this.updatePoolTile(t);
+		return t;
+	}
+
+	/** Copy count / Diver badge and the "Diver" button of one pool card. */
+	private updatePoolTile(t: PoolTile): void {
+		const { count, isDiver, maxed } = poolCardState(this.deck, t.card.id);
+		const state = `${count}|${isDiver}`;
+		if (state === t.state) return;
+		t.state = state;
+		t.badge?.remove();
+		t.badge = isDiver
+			? t.tile.createDiv({ cls: "chrono-builder-incount is-diver", text: "Diver" })
+			: count
+				? t.tile.createDiv({ cls: "chrono-builder-incount", text: `${count}/${MAX_COPIES}` })
+				: null;
+		t.tile.toggleClass("is-maxed", maxed);
+		t.diverEl?.toggle(!isDiver);
 	}
 
 	// ---- deck pane ---------------------------------------------------------

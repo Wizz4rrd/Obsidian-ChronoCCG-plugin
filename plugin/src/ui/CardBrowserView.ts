@@ -1,9 +1,10 @@
-import { ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
+import { debounce, ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { isDiverEligible } from "../data/DeckRules";
 import { Card, SYNDICATES, Syndicate } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
+import { imageCache } from "../utils/ImageCache";
 
 export const VIEW_TYPE_CARD_BROWSER = "chronoccg-card-browser";
 
@@ -30,6 +31,7 @@ export class CardBrowserView extends ItemView {
 	private minCostInput!: HTMLInputElement;
 	private maxCostInput!: HTMLInputElement;
 	private filterSourceKey = "";
+	private refreshSoon = debounce(() => this.refresh(), 150, true);
 
 	constructor(leaf: WorkspaceLeaf, private plugin: ChronoCCGPlugin) {
 		super(leaf);
@@ -62,7 +64,7 @@ export class CardBrowserView extends ItemView {
 		});
 		this.searchInput.addEventListener("input", () => {
 			this.query = this.searchInput.value;
-			this.refresh();
+			this.refreshSoon();
 		});
 
 		const workspace = root.createDiv({ cls: "chrono-browser-workspace" });
@@ -82,7 +84,7 @@ export class CardBrowserView extends ItemView {
 			cls: "chrono-filter-num",
 			attr: { min: "0", placeholder: "Max" },
 		});
-		const bumpSearch = () => this.refresh();
+		const bumpSearch = () => this.refreshSoon();
 		this.minCostInput.addEventListener("input", bumpSearch);
 		this.maxCostInput.addEventListener("input", bumpSearch);
 
@@ -142,6 +144,7 @@ export class CardBrowserView extends ItemView {
 	}
 
 	refresh(): void {
+		imageCache.forget(this.resultsEl);
 		this.resultsEl.empty();
 
 		const active = this.filterActiveCount();
