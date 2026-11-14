@@ -5,7 +5,6 @@ date: 2026-11-02
 deck: "[[Somnus Revive]]"
 record: 3-1
 placement: 2nd
-tags: [chronoccg/tournament]
 ---
 # 2026-11-02 Weekly Dive
 

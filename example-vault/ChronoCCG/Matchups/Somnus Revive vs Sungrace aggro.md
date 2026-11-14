@@ -5,7 +5,6 @@ opponent: "Sungrace aggro"
 wins: 3
 losses: 2
 created: 2026-11-02
-tags: [chronoccg/matchup]
 ---
 # Somnus Revive vs Sungrace aggro
 

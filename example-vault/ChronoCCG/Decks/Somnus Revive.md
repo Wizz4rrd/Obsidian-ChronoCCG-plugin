@@ -6,7 +6,6 @@ divers: ["Sensory Deprivation Pod", "Shattersmith"]
 code: AUGVG33NNZ2XGICSMV3GS5TFBNRW63TTORZHKY3UMVSHUAACAEAAFBIBA4GGMAYMAMHAGCADNUBQEAYZAMBQGAQDAMBQEAYCAM
 created: 2026-11-02
 status: testing
-tags: [chronoccg/deck]
 ---
 # Somnus Revive
 

@@ -6,7 +6,6 @@ divers: ["Egg Tender", "Novice Excavator"]
 code: AUFEKZ3HEBHG65TJMNSQWY3PNZZXI4TVMN2GKZADABEQEARMYIAQIFYIB6UQCCRJAOVACAYCAMGAGBYDAIBQGA3KANKAGIAD
 created: 2026-11-02
 status: testing
-tags: [chronoccg/deck]
 ---
 # Egg Novice
 

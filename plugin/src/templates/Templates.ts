@@ -28,7 +28,6 @@ divers: [{{divers}}]
 code: {{code}}
 created: {{date}}
 status: testing
-tags: [chronoccg/deck]
 ---
 # {{name}}
 

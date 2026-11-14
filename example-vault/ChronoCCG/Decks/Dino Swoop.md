@@ -6,7 +6,6 @@ divers: ["Agent of Stability", "Leeflo Mentor"]
 code: AUFEI2LON4QFG53PN5YAWY3PNZZXI4TVMN2GKZDIAHJQCAJGAOIAEA5AAEFRSAYGAMCQGBIDAMBQEA62AEBQMAYKAO7QCAYGAM
 created: 2026-11-11
 status: testing
-tags: [chronoccg/deck]
 ---
 # Dino Swoop
 
