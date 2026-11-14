@@ -18,7 +18,7 @@
 		"tcg",
 		"chrono"
 	],
-	"author": "Merlin Deramaix",
+	"author": "Wizz4rrd",
 	"license": "MIT",
 	"devDependencies": {
 		"@codemirror/language": "^6.13.1",
