@@ -1,4 +1,4 @@
-import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, normalizePath, Notice, Plugin, TFile, Vault, WorkspaceLeaf } from "obsidian";
 import { CardRepository } from "./src/data/CardRepository";
 import { DataSync } from "./src/data/DataSync";
 import { SEED_DATABASE } from "./src/data/cards.seed";
@@ -287,12 +287,16 @@ export default class ChronoCCGPlugin extends Plugin {
 	// ---- helpers -------------------------------------------------------------
 
 	/** "[[Deck note]]" when the active note is a deck note, else "". */
-	/** Deck notes (`type: chrono-deck`), by name. */
+	/** Deck notes (`type: chrono-deck`) in the notes folder, by name. Only that folder is looked through, not the whole vault. */
 	private deckNotes(): TFile[] {
-		return this.app.vault
-			.getMarkdownFiles()
-			.filter((file) => deckNoteFrontmatter(this.app, file))
-			.sort((a, b) => a.basename.localeCompare(b.basename));
+		const folderPath = this.settings.notesFolder.trim();
+		const folder = folderPath ? this.app.vault.getFolderByPath(normalizePath(folderPath)) : this.app.vault.getRoot();
+		const notes: TFile[] = [];
+		if (!folder) return notes;
+		Vault.recurseChildren(folder, (file) => {
+			if (file instanceof TFile && file.extension === "md" && deckNoteFrontmatter(this.app, file)) notes.push(file);
+		});
+		return notes.sort((a, b) => a.basename.localeCompare(b.basename));
 	}
 
 	private async newTournamentReport(opts: TournamentOptions): Promise<void> {
@@ -361,7 +365,8 @@ export default class ChronoCCGPlugin extends Plugin {
 	/** @returns true when the settings were moved off the removed runeterra.ar source. */
 	async loadSettings(): Promise<boolean> {
 		const defaults = structuredClone(DEFAULT_SETTINGS);
-		this.settings = Object.assign(defaults, (await this.loadData()) as Partial<ChronoSettings> | null);
+		const saved = (await this.loadData()) as Partial<ChronoSettings> | null;
+		this.settings = { ...defaults, ...saved };
 		const legacy = this.settings as unknown as Record<string, unknown>;
 		const migrated = legacy.dataSource === "runeterra-ar" || legacy.dataSource === "chrono-db";
 		if (migrated) this.settings.dataSource = "official";

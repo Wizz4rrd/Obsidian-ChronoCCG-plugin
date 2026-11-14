@@ -258,8 +258,8 @@ export class ImageCache {
 	/** Run `load` once `img` is near the viewport of its window. */
 	private whenVisible(img: HTMLImageElement, load: () => void): void {
 		// Each window has its own constructor; an observer only sees its own window's elements.
-		const win = img.win as (Window & typeof globalThis) | undefined;
-		if (!win || typeof win.IntersectionObserver !== "function") return load();
+		const win = img.win as (Window & { IntersectionObserver?: typeof IntersectionObserver }) | undefined;
+		if (!win?.IntersectionObserver) return load();
 		let observer = this.observers.get(win);
 		if (!observer) {
 			observer = new win.IntersectionObserver(
@@ -283,7 +283,7 @@ export class ImageCache {
 	/** WebP where the engine can encode it; PNG otherwise (Safari/iOS can't encode WebP). */
 	private format(): { type: string; ext: string } {
 		if (!this.encoding) {
-			const canvas = activeDocument.createElement("canvas");
+			const canvas = createEl("canvas");
 			canvas.width = canvas.height = 1;
 			const webp = canvas.toDataURL("image/webp").startsWith("data:image/webp");
 			this.encoding = webp ? { type: "image/webp", ext: "webp" } : { type: "image/png", ext: "png" };
@@ -376,7 +376,7 @@ export class ImageCache {
 	}
 
 	private draw(src: CanvasImageSource, w: number, h: number): HTMLCanvasElement {
-		const canvas = activeDocument.createElement("canvas");
+		const canvas = createEl("canvas");
 		canvas.width = w;
 		canvas.height = h;
 		const ctx = canvas.getContext("2d");

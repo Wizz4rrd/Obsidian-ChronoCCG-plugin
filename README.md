@@ -61,7 +61,7 @@ cards:
 | Insert inline card reference… / Insert card image block… | |
 | Look up a card… | |
 | New deck note | Also opens the deck builder, linked to the new note |
-| New tournament report | Asks for the event, the format (Bo1, Bo3, Bo5), the number of rounds and the decks you bring: any number of deck notes, plus deck codes (one per line) for decks you have no note for |
+| New tournament report | Asks for the event, the format (Bo1, Bo3, Bo5), the number of rounds and the decks you bring: any number of deck notes (from the notes folder), plus deck codes (one per line) for decks you have no note for |
 | Update deck note properties | Sets `deck`, `syndicates`, `divers` and `code` from the note's first deck block |
 | Refresh card database | Downloads the card list again |
 
@@ -96,6 +96,12 @@ The plugin only goes online to get the card list, the card images and the six sy
 | If you set a custom data URL | Downloads the card list | Your URL |
 
 The card list (`card-cache.json`) and the images and icons (`image-cache/`) are saved in the plugin folder, so each image is only downloaded once and everything you've already seen works offline. Saved images are shrunk to 400px wide WebP (about 35 KB each, roughly 14 MB for all 390 deck-legal cards). To have every card offline at once, use "Download all card images" in the settings: it downloads the missing ones (a few at a time, you can cancel) and saves the same 400px copies. You can clear the saved images in the settings, or turn off saving them: that deletes them too (after asking), and the full-size image is then loaded every time. Set the auto-refresh interval to `0` to turn off the automatic download. If you pick the "Bundled" source it never downloads anything (syndicate icons are replaced by plain icons), but you only get a placeholder card.
+
+## Privacy and permissions
+
+- **Vault:** the plugin reads the notes it renders and the deck notes in its notes folder (for the tournament report deck list), and writes only the notes you create or save from it, plus its own folder (`card-cache.json`, `image-cache/`, settings). It doesn't scan the rest of your vault.
+- **Clipboard:** it only writes to the clipboard when you click a copy button or command (deck code, export, inline card reference). It never reads the clipboard.
+- **Release files:** `main.js`, `manifest.json` and `styles.css` of each release are built by GitHub Actions from this repository and come with a [build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations). Check a download with `gh attestation verify main.js --repo Wizz4rrd/Obsidian-ChronoCCG-plugin`.
 
 ## Plans
 
