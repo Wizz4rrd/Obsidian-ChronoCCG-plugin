@@ -1,11 +1,11 @@
-import { debounce, ItemView, Notice, setIcon, TFile, WorkspaceLeaf } from "obsidian";
+import { debounce, ItemView, Notice, Platform, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { decodeDeck } from "../data/DeckCodec";
 import { sortEntries, toCodeBlock } from "../data/DeckExport";
 import { allowedSyndicates, deckStats, DIVER_COUNT, isDiverEligible, MAIN_DECK_SIZE, MAX_COPIES, validateDeck } from "../data/DeckRules";
 import { unwrapDeckCode } from "../data/deckInput";
 import { Card, Deck, Syndicate, SYNDICATES } from "../data/types";
-import { attachCardPreview } from "./CardPreview";
+import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
 import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, renderUnknownDeckRow, showExportMenu } from "./DeckWidgets";
 import { TextPromptModal } from "./TextPromptModal";
@@ -214,8 +214,9 @@ export class DeckBuilderView extends ItemView {
 		cards = cards.filter((c) => c.collectible !== false).sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
 
 		const shown = cards.slice(0, 300);
+		const howTo = Platform.isMobile ? "tap to add, ⓘ for details" : "click to add";
 		this.poolStatusEl.setText(
-			`${cards.length} cards${cards.length > shown.length ? ` (showing ${shown.length})` : ""} • click to add, “Diver” to set as Diver`,
+			`${cards.length} cards${cards.length > shown.length ? ` (showing ${shown.length})` : ""} • ${howTo}, “Diver” to set as Diver`,
 		);
 		if (this.plugin.cards.size <= 1) {
 			this.poolStatusEl.setText('No card data yet — run "ChronoCCG: Refresh card database".');
@@ -236,11 +237,23 @@ export class DeckBuilderView extends ItemView {
 				evt.preventDefault();
 				this.removeOne(card.id);
 			});
-			if (isDiverEligible(card) && !isDiver) {
-				const b = tile.createEl("button", { cls: "chrono-builder-diver-btn", text: "Diver" });
+			const canDive = isDiverEligible(card) && !isDiver;
+			if (!canDive && !Platform.isMobile) continue;
+			const actions = tile.createDiv({ cls: "chrono-builder-card-actions" });
+			if (canDive) {
+				const b = actions.createEl("button", { cls: "chrono-builder-diver-btn", text: "Diver" });
 				b.addEventListener("click", (evt) => {
 					evt.stopPropagation();
 					this.addCard(card, true);
+				});
+			}
+			// No hover preview on touch screens, and tapping the tile adds the card.
+			if (Platform.isMobile) {
+				const info = actions.createEl("button", { cls: "clickable-icon chrono-builder-info-btn", attr: { "aria-label": "Card details" } });
+				setIcon(info, "info");
+				info.addEventListener("click", (evt) => {
+					evt.stopPropagation();
+					new CardDetailModal(this.app, this.plugin, card).open();
 				});
 			}
 		}
@@ -326,7 +339,10 @@ export class DeckBuilderView extends ItemView {
 				onRemove: () => this.removeOne(e.id),
 			});
 		}
-		if (!deck.entries.length) list.createDiv({ cls: "chrono-deck-row is-empty", text: "Click cards on the left to add them." });
+		if (!deck.entries.length) {
+			const hint = Platform.isMobile ? "Tap cards in the pool to add them." : "Click cards on the left to add them.";
+			list.createDiv({ cls: "chrono-deck-row is-empty", text: hint });
+		}
 
 		renderIssues(el, issues);
 	}
