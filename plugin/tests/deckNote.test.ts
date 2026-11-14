@@ -4,6 +4,7 @@ import { decodeDeck } from "../src/data/DeckCodec";
 import { logDeckChange } from "../src/data/deckChangelog";
 import { findFirstDeckBlock, locateDeckBlock } from "../src/data/deckInput";
 import { deckProperties, staleProperties } from "../src/data/deckProperties";
+import { parseDeckCodes, tournamentRounds } from "../src/data/tournament";
 import { Card, Deck } from "../src/data/types";
 
 function card(id: number, over: Partial<Card> = {}): Card {
@@ -88,4 +89,25 @@ test("finds the builder's block again after the note changed above it", () => {
 	assert.deepEqual(locateDeckBlock(moved, { lineStart: 5, body: "name: B" }), { start: 1, end: 3 });
 	// The block was edited by hand: its position still counts.
 	assert.deepEqual(locateDeckBlock(moved, { lineStart: 5, body: "name: Z" }), { start: 5, end: 7 });
+});
+
+test("tournament rounds have a row per game of the format", () => {
+	const bo3 = tournamentRounds("Bo3", 2).split("\n");
+	assert.deepEqual(
+		bo3.filter((l) => l.startsWith("### ")),
+		["### Round 1", "### Round 2"],
+	);
+	assert.equal(bo3.filter((l) => /^\| \d \|/.test(l)).length, 6);
+	assert.equal(tournamentRounds("Bo5", 1).split("\n").filter((l) => /^\| \d \|/.test(l)).length, 5);
+	assert.equal(tournamentRounds("Bo1", 0).split("\n").filter((l) => /^\| \d \|/.test(l)).length, 1);
+});
+
+test("reads pasted deck codes for a tournament report, one per line", () => {
+	const code = "AUGVG33NNZ2XGICSMV3GS5TFBNRW63TTORZHKY3UMVSHUAACAEAAFBIBA4GGMAYMAMHAGCADNUBQEAYZAMBQGAQDAMBQEAYCAM";
+	const { decks, invalid } = parseDeckCodes(`${code}\n\n  \`${code}\`  \nnot a code`);
+	assert.equal(decks.length, 2);
+	assert.equal(decks[0].divers.length, 2);
+	assert.ok(decks[0].name);
+	assert.deepEqual(invalid, [4]);
+	assert.deepEqual(parseDeckCodes(""), { decks: [], invalid: [] });
 });

@@ -1,6 +1,6 @@
 # ChronoCCG for Obsidian
 
-An Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wanted to keep my decks, matchup notes and tournament reports in my vault, with real cards in them instead of plain text, so I made this.
+An Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wanted to keep my decks and tournament reports in my vault, with real cards in them instead of plain text, so I made this.
 
 If you cloned the repo, you can try it in the example vault: open `example-vault/` in Obsidian and start with `ChronoCCG/Welcome.md`.
 
@@ -11,7 +11,7 @@ If you cloned the repo, you can try it in the example vault: open `example-vault
 - Decks: a `chrono-deck` block takes a deck code, a simple list or YAML (examples below). It checks the deck against the [rules](https://playchrono.com/rules) (2 Divers, 40 cards, max 3 copies, only your Divers' syndicates), shows the energy curve and the type/syndicate split, and has buttons to copy the code, export the deck or open it in the builder.
 - Deck builder: opens in its own tab. Filter the card pool (you can show only the cards your Divers can play), add/remove cards, and save the deck back to the note it came from or to a new note. Saving a deck note also updates its properties and adds what changed to its "Changelog" section.
 - Card browser: a page or a sidebar pane with filters for cost (click one or more, 0 to 7+), syndicate, spell speed, rarity, type, keyword and set. The deck builder has the same cost filter. Click a card to insert it, add it to the builder or see the details.
-- Templates for deck, matchup and tournament notes. The frontmatter works with Dataview. You can replace them with your own.
+- Templates for deck notes and tournament reports (with several decks and Bo1/Bo3/Bo5 rounds). The frontmatter works with Dataview. You can replace them with your own.
 
 Deck codes work both ways with the game and with deck sites that use the same format.
 
@@ -61,17 +61,17 @@ cards:
 | Insert inline card reference… / Insert card image block… | |
 | Look up a card… | |
 | New deck note | Also opens the deck builder, linked to the new note |
-| New matchup note / New tournament report | |
+| New tournament report | Asks for the event, the format (Bo1, Bo3, Bo5), the number of rounds and the decks you bring: any number of deck notes, plus deck codes (one per line) for decks you have no note for |
 | Update deck note properties | Sets `deck`, `syndicates`, `divers` and `code` from the note's first deck block |
 | Refresh card database | Downloads the card list again |
 
 ### Templates
 
-New notes go in `ChronoCCG/Decks`, `ChronoCCG/Matchups` and `ChronoCCG/Tournaments` (you can change the root folder in the settings).
+New notes go in `ChronoCCG/Decks` and `ChronoCCG/Tournaments` (you can change the root folder in the settings).
 
 In a deck note (`type: chrono-deck`), the `deck`, `syndicates`, `divers` and `code` properties describe the first `chrono-deck` block. Saving from the deck builder updates them. If you edit the block by hand, the block shows "Note properties are out of date" with an Update button (or run "Update deck note properties"). Properties your template doesn't have are left alone.
 
-Saving a deck note from the deck builder also adds a line to its "Changelog" section, e.g. ``- 2026-11-14 — Diver `chrono:Agent of Stability` → `chrono:Leeflo Mentor`, +2 `chrono:Bloom`, −1 `chrono:Throwdown` ``. Saves on the same day are merged into one line. Notes without a "Changelog" heading are left alone, and you can turn this off in the settings ("Log deck changes"). To edit the templates, click "Write templates" in the settings (Notes → Default templates) and change the files it creates. Placeholders: `{{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}`.
+Saving a deck note from the deck builder also adds a line to its "Changelog" section, e.g. ``- 2026-11-14 — Diver `chrono:Agent of Stability` → `chrono:Leeflo Mentor`, +2 `chrono:Bloom`, −1 `chrono:Throwdown` ``. Saves on the same day are merged into one line. Notes without a "Changelog" heading are left alone, and you can turn this off in the settings ("Log deck changes"). To edit the templates, click "Write templates" in the settings (Notes → Default templates) and change the files it creates. Placeholders: `{{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}}`, and in tournament reports `{{event}} {{format}} {{decks}}` (for the `decks` property) `{{deckLinks}} {{decklists}} {{rounds}}`. A tournament report has a section per round with a row per game, to note which of your decks you played.
 
 ### Deck notes in a base
 
@@ -100,7 +100,7 @@ The card list (`card-cache.json`) and the images and icons (`image-cache/`) are 
 ## Plans
 
 - Tested mobile support (tablets first)
-- Matchup stats (win rates per deck and opponent) from your matchup notes
+- Matchup stats (win rates per deck and opponent) from your tournament reports
 
 ## Development
 

@@ -1000,3 +1000,16 @@ body.is-mobile button.chrono-builder-diver-btn { padding: 2px 10px; }
 	padding: var(--size-4-4);
 	color: var(--text-muted);
 }
+
+/* ---- New tournament report ---- */
+.chrono-tournament-codes {
+	width: 100%;
+	min-width: 16rem;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+}
+.chrono-tournament-codes-error {
+	color: var(--text-error);
+	font-size: var(--font-ui-smaller);
+}
+.chrono-tournament-codes-error:empty { display: none; }

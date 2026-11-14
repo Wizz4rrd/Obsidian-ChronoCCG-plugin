@@ -169,19 +169,20 @@ export class ChronoSettingsTab extends PluginSettingTab {
 				items: [
 					{
 						name: "Notes folder",
-						desc: "Deck, matchup and tournament notes are created in sub-folders of this folder. Empty = vault root.",
+						desc: "Deck notes and tournament reports are created in sub-folders of this folder. Empty = vault root.",
 						control: { type: "folder", key: "notesFolder", placeholder: "ChronoCCG", includeRoot: true },
 					},
 					{
 						name: "Template folder",
 						desc:
-							'Optional. A "Deck.md" file in this folder replaces the built-in deck note template. ' +
-							"Placeholders: {{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}.",
+							'Optional. "Deck.md" and "Tournament report.md" files in this folder replace the built-in templates. ' +
+							"Placeholders: {{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}}; in tournament reports also " +
+							"{{event}} {{format}} {{decks}} {{deckLinks}} {{decklists}} {{rounds}}.",
 						control: { type: "folder", key: "templateFolder", placeholder: "ChronoCCG/Templates" },
 					},
 					{
 						name: "Default templates",
-						desc: "Copy the built-in deck, matchup and tournament templates into the template folder, so you can edit them. Existing files are kept.",
+						desc: "Copy the built-in deck note and tournament report templates into the template folder, so you can edit them. Existing files are kept.",
 						render: (setting) => {
 							setting.addButton((b) =>
 								b.setButtonText("Write templates").onClick(async () => {
