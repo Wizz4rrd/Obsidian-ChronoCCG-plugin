@@ -122,6 +122,20 @@ export class CardBrowserView extends ItemView {
 		this.refresh();
 	}
 
+	onPaneMenu(menu: Menu, source: string): void {
+		super.onPaneMenu(menu, source);
+		// Where it is now: tabs can also be dragged between the sidebar and the main area.
+		const root = this.leaf.getRoot();
+		const inSidebar = root === this.app.workspace.rightSplit || root === this.app.workspace.leftSplit;
+		menu.addItem((item) =>
+			item
+				.setTitle(inSidebar ? "Open as page" : "Move to sidebar")
+				.setIcon(inSidebar ? "file" : "panel-right")
+				.setSection("pane")
+				.onClick(() => void this.plugin.setCardBrowserPlacement(inSidebar ? "tab" : "sidebar")),
+		);
+	}
+
 	/** Drag handle between the filters and the cards (mouse, touch and arrow keys; double-click resets it). */
 	private addResizeHandle(workspace: HTMLElement, filtersPanel: HTMLElement): void {
 		const s = this.plugin.settings;

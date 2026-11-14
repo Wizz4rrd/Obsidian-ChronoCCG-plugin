@@ -3,7 +3,7 @@ import { CardRepository } from "./src/data/CardRepository";
 import { DataSync } from "./src/data/DataSync";
 import { SEED_DATABASE } from "./src/data/cards.seed";
 import { Card, Deck } from "./src/data/types";
-import { ChronoSettings, ChronoSettingsTab, DEFAULT_SETTINGS } from "./src/settings/SettingsTab";
+import { CardBrowserPlacement, ChronoSettings, ChronoSettingsTab, DEFAULT_SETTINGS } from "./src/settings/SettingsTab";
 import { registerCardCodeBlock } from "./src/markdown/CardCodeBlock";
 import { parseDeck, registerDeckCodeBlock } from "./src/markdown/DeckCodeBlock";
 import { findDeckBlockAt, findFirstDeckBlock } from "./src/data/deckInput";
@@ -220,12 +220,26 @@ export default class ChronoCCGPlugin extends Plugin {
 		const { workspace } = this.app;
 		let leaf = workspace.getLeavesOfType(VIEW_TYPE_CARD_BROWSER)[0];
 		if (!leaf) {
-			leaf = workspace.getRightLeaf(false) ?? workspace.getLeaf(true);
+			leaf = this.settings.cardBrowserPlacement === "sidebar" ? (workspace.getRightLeaf(false) ?? workspace.getLeaf("tab")) : workspace.getLeaf("tab");
 			await leaf.setViewState({ type: VIEW_TYPE_CARD_BROWSER, active: true });
 		}
 		await workspace.revealLeaf(leaf);
 		const view = leaf.view;
 		if (view instanceof CardBrowserView) view.refresh();
+	}
+
+	/** Open the card browser as a page or in the sidebar from now on, moving it there when it is open. */
+	async setCardBrowserPlacement(placement: CardBrowserPlacement): Promise<void> {
+		if (this.settings.cardBrowserPlacement !== placement) {
+			this.settings.cardBrowserPlacement = placement;
+			await this.saveSettings();
+		}
+		const open = this.app.workspace.getLeavesOfType(VIEW_TYPE_CARD_BROWSER);
+		if (!open.length) return;
+		const inSidebar = (leaf: WorkspaceLeaf) => leaf.getRoot() === this.app.workspace.rightSplit || leaf.getRoot() === this.app.workspace.leftSplit;
+		if (open.every((leaf) => inSidebar(leaf) === (placement === "sidebar"))) return;
+		open.forEach((leaf) => leaf.detach());
+		await this.activateCardBrowser();
 	}
 
 	async activateDeckBuilder(): Promise<DeckBuilderView | null> {

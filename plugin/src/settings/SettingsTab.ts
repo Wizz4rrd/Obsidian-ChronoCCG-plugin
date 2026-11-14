@@ -11,6 +11,9 @@ export type CardImageStyle = "game" | "full";
 
 export type DeckView = "grid" | "list";
 
+/** The card browser as a page (tab in the main area) or in the right sidebar. */
+export type CardBrowserPlacement = "tab" | "sidebar";
+
 export interface ChronoSettings {
 	dataSource: DataSourceId;
 	customDataUrl: string;
@@ -29,6 +32,7 @@ export interface ChronoSettings {
 	templateFolder: string;
 	/** Log deck builder saves in the deck note's Changelog section. */
 	deckChangelog: boolean;
+	cardBrowserPlacement: CardBrowserPlacement;
 	/** Height of the card browser's filters, in % of the pane (the rest is the cards). */
 	browserFiltersPercent: number;
 	/** Deck builder state, persisted between sessions. */
@@ -47,12 +51,13 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 	notesFolder: "ChronoCCG",
 	templateFolder: "",
 	deckChangelog: true,
+	cardBrowserPlacement: "tab",
 	browserFiltersPercent: 42,
 	builderDraft: { deck: emptyDeck() },
 };
 
 /** Keys of {@link ChronoSettings} bound to a declarative control. */
-type ControlKey = "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog";
+type ControlKey = "cardBrowserPlacement" | "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog";
 
 export class ChronoSettingsTab extends PluginSettingTab {
 	/** Rows that show something derived from the settings (e.g. the images to download), redrawn when a setting changes. */
@@ -70,6 +75,7 @@ export class ChronoSettingsTab extends PluginSettingTab {
 		const s = this.plugin.settings as unknown as Record<ControlKey, unknown>;
 		s[key as ControlKey] = normalizeControlValue(key as ControlKey, value);
 		await this.plugin.saveSettings();
+		if (key === "cardBrowserPlacement") await this.plugin.setCardBrowserPlacement(value as CardBrowserPlacement);
 		// "Custom data URL" is only shown for the custom source; each image style has its own images to download.
 		this.refreshDomState();
 		this.refreshers.forEach((refresh) => refresh());
@@ -143,6 +149,12 @@ export class ChronoSettingsTab extends PluginSettingTab {
 						name: "Default deck view",
 						desc: "How chrono-deck blocks render. Each block also has a grid/list toggle.",
 						control: { type: "dropdown", key: "deckView", options: { grid: "Card grid", list: "Compact list" } },
+					},
+					{
+						name: "Open card browser as",
+						desc: "A page in the main area, or a pane in the right sidebar. An open card browser moves right away.",
+						aliases: ["sidebar", "tab", "pane"],
+						control: { type: "dropdown", key: "cardBrowserPlacement", options: { tab: "Page", sidebar: "Sidebar pane" } },
 					},
 					{
 						name: "Hover previews",
