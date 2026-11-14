@@ -39,7 +39,7 @@ export function poolCards(repo: CardRepository, deck: Deck, f: PoolFilters): Car
 		2000,
 	);
 	if (allowed) cards = cards.filter((c) => c.syndicates.some((s) => allowed.has(s)));
-	return cards.filter((c) => c.collectible !== false).sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
+	return cards.filter((c) => c.collectible !== false);
 }
 
 export interface PoolCardState {
