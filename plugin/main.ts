@@ -15,6 +15,7 @@ import { DeckBuilderView, DeckSourceLink, emptyDeck, VIEW_TYPE_DECK_BUILDER } fr
 import { ImportDeckModal } from "./src/ui/ImportDeckModal";
 import { TextPromptModal } from "./src/ui/TextPromptModal";
 import { imageCache } from "./src/utils/ImageCache";
+import { cardImageUrls } from "./src/utils/imageUrl";
 import { deckNoteFrontmatter, updateDeckNoteProperties } from "./src/templates/DeckNoteSync";
 import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind } from "./src/templates/Templates";
 
@@ -290,6 +291,16 @@ export default class ChronoCCGPlugin extends Plugin {
 			await this.saveSettings();
 		}
 		new Notice(`ChronoCCG: wrote ${written} template(s) to ${folder}${written < 3 ? " (existing files kept)" : ""}.`);
+	}
+
+	/** Save a shrunk copy of every card image (in the selected style) that isn't saved yet. */
+	async downloadAllCardImages(): Promise<void> {
+		if (imageCache.downloadProgress?.running) return;
+		const result = await imageCache.downloadAll(cardImageUrls(this.cards.all(), this.settings));
+		const saved = result.done - result.failed;
+		const failed = result.failed ? `, ${result.failed} failed` : "";
+		if (result.cancelled) new Notice(`ChronoCCG: image download stopped (${saved} saved${failed}).`);
+		else new Notice(`ChronoCCG: saved ${saved} card image${saved === 1 ? "" : "s"}${failed}.`);
 	}
 
 	/** @returns true when the settings were moved off the removed runeterra.ar source. */
