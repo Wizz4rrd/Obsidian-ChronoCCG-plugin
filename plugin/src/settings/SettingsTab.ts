@@ -29,6 +29,8 @@ export interface ChronoSettings {
 	templateFolder: string;
 	/** Log deck builder saves in the deck note's Changelog section. */
 	deckChangelog: boolean;
+	/** Height of the card browser's filters, in % of the pane (the rest is the cards). */
+	browserFiltersPercent: number;
 	/** Deck builder state, persisted between sessions. */
 	builderDraft: BuilderDraft;
 }
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 	notesFolder: "ChronoCCG",
 	templateFolder: "",
 	deckChangelog: true,
+	browserFiltersPercent: 42,
 	builderDraft: { deck: emptyDeck() },
 };
 
