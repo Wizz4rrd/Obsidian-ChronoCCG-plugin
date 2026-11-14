@@ -1,5 +1,5 @@
 import { App, Modal, Platform } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { isImmortalized } from "../data/CardRepository";
 import { isDiverEligible } from "../data/DeckRules";
 import { Card } from "../data/types";
@@ -41,7 +41,7 @@ function popoverFor(doc: Document): PopoverState {
 	return state;
 }
 
-export function showCardPopover(plugin: ChronoCCGPlugin, card: Card, evt: MouseEvent): void {
+export function showCardPopover(plugin: ChronoVaultPlugin, card: Card, evt: MouseEvent): void {
 	if (!plugin.settings.hoverPreviews || Platform.isMobile) return;
 	const doc = (evt.target as Node | null)?.ownerDocument ?? activeDocument;
 	const state = popoverFor(doc);
@@ -119,7 +119,7 @@ function positionPopover(state: PopoverState, win: Window): void {
 }
 
 /** Wire hover (desktop) and tap (mobile) previews onto any element. */
-export function attachCardPreview(plugin: ChronoCCGPlugin, el: HTMLElement, card: Card, opts: { tapToOpen?: boolean } = {}): void {
+export function attachCardPreview(plugin: ChronoVaultPlugin, el: HTMLElement, card: Card, opts: { tapToOpen?: boolean } = {}): void {
 	el.addEventListener("mouseenter", (evt) => showCardPopover(plugin, card, evt));
 	el.addEventListener("mousemove", (evt) => showCardPopover(plugin, card, evt));
 	el.addEventListener("mouseleave", () => hideCardPopover(el.ownerDocument));
@@ -155,7 +155,7 @@ export function cardMetaLine(card: Card): string {
 
 /** Big card view with details and quick actions. */
 export class CardDetailModal extends Modal {
-	constructor(app: App, private plugin: ChronoCCGPlugin, private card: Card) {
+	constructor(app: App, private plugin: ChronoVaultPlugin, private card: Card) {
 		super(app);
 	}
 

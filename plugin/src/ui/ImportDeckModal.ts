@@ -1,5 +1,5 @@
 import { App, Modal, Notice, Setting } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { decodeDeck } from "../data/DeckCodec";
 import { toCodeBlock } from "../data/DeckExport";
 import { unwrapDeckCode } from "../data/deckInput";
@@ -9,7 +9,7 @@ export class ImportDeckModal extends Modal {
 	private code = "";
 	private deckName = "";
 
-	constructor(app: App, private plugin: ChronoCCGPlugin) {
+	constructor(app: App, private plugin: ChronoVaultPlugin) {
 		super(app);
 	}
 

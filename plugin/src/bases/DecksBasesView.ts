@@ -1,11 +1,11 @@
 import { BasesEntry, BasesPropertyId, BasesView, BasesViewConfig, Keymap, ListValue, QueryController, RenderContext, Value } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { Syndicate, SYNDICATES } from "../data/types";
 import { attachCardPreview } from "../ui/CardPreview";
 import { syndicateClass, UNKNOWN_CARD_HINT } from "../ui/CardTile";
 import { renderSyndicateIcon } from "../ui/SyndicateIcon";
 
-export const DECKS_BASES_VIEW = "chronoccg-decks";
+export const DECKS_BASES_VIEW = "chronovault-decks";
 
 const CARDS_OPTION = "cardProperties";
 const SYNDICATES_OPTION = "syndicateProperty";
@@ -17,9 +17,9 @@ const DEFAULT_SYNDICATES_PROPERTY = "note.syndicates";
  * (the Divers by default) show as inline card references with the hover preview,
  * and syndicates as their icons.
  */
-export function registerDecksBasesView(plugin: ChronoCCGPlugin): void {
+export function registerDecksBasesView(plugin: ChronoVaultPlugin): void {
 	plugin.registerBasesView(DECKS_BASES_VIEW, {
-		name: "ChronoCCG decks",
+		name: "ChronoVault decks",
 		icon: "swords",
 		factory: (controller, containerEl) => new DecksBasesView(controller, containerEl, plugin),
 		options: () => [
@@ -47,7 +47,7 @@ class DecksBasesView extends BasesView {
 	constructor(
 		controller: QueryController,
 		private containerEl: HTMLElement,
-		private plugin: ChronoCCGPlugin,
+		private plugin: ChronoVaultPlugin,
 	) {
 		super(controller);
 	}

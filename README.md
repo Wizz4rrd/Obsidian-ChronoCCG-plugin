@@ -1,6 +1,6 @@
-# ChronoCCG for Obsidian
+# ChronoVault
 
-An Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wanted to keep my decks and tournament reports in my vault, with real cards in them instead of plain text, so I made this.
+ChronoVault is an Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wanted to keep my decks and tournament reports in my vault, with real cards in them instead of plain text, so I made this.
 
 If you cloned the repo, you can try it in the example vault: open `example-vault/` in Obsidian and start with `ChronoCCG/Welcome.md`.
 
@@ -75,7 +75,7 @@ Saving a deck note from the deck builder also adds a line to its "Changelog" sec
 
 ### Deck notes in a base
 
-Deck notes work well in a [base](https://obsidian.md/help/bases) (filter on `type == "chrono-deck"`). The plugin adds a "ChronoCCG decks" view type to bases: a table where the Divers show as inline card references (coloured, with the hover preview; click to open the card) and the syndicates as their icons (saved, so they also show offline). Pick it in the base's view menu. In the view options, "Card properties" sets which properties hold card names (`divers` by default) and "Syndicates property" which one holds syndicates. Columns, sorting, filters and grouping are set like in a normal table.
+Deck notes work well in a [base](https://obsidian.md/help/bases) (filter on `type == "chrono-deck"`). The plugin adds a "ChronoVault decks" view type to bases: a table where the Divers show as inline card references (coloured, with the hover preview; click to open the card) and the syndicates as their icons (saved, so they also show offline). Pick it in the base's view menu. In the view options, "Card properties" sets which properties hold card names (`divers` by default) and "Syndicates property" which one holds syndicates. Columns, sorting, filters and grouping are set like in a normal table.
 
 ### Limitations
 
@@ -101,7 +101,7 @@ The card list (`card-cache.json`) and the images and icons (`image-cache/`) are 
 
 - **Vault:** the plugin reads the notes it renders and the deck notes in its notes folder (for the tournament report deck list), and writes only the notes you create or save from it, plus its own folder (`card-cache.json`, `image-cache/`, settings). It doesn't scan the rest of your vault.
 - **Clipboard:** it only writes to the clipboard when you click a copy button or command (deck code, export, inline card reference). It never reads the clipboard.
-- **Release files:** `main.js`, `manifest.json` and `styles.css` of each release are built by GitHub Actions from this repository and come with a [build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations). Check a download with `gh attestation verify main.js --repo Wizz4rrd/Obsidian-ChronoCCG-plugin`.
+- **Release files:** `main.js`, `manifest.json` and `styles.css` of each release are built by GitHub Actions from this repository and come with a [build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations). Check a download with `gh attestation verify main.js --repo Wizz4rrd/obsidian-chronovault`.
 
 ## Plans
 
@@ -118,12 +118,12 @@ make dev         # rebuild on save
 make build       # production build
 make test        # unit tests
 make lint        # ESLint with Obsidian's plugin rules
-make link        # symlink plugin/ into example-vault/.obsidian/plugins/chronoccg
+make link        # symlink plugin/ into example-vault/.obsidian/plugins/chronovault
 make shell       # shell in the container
 make help        # all targets
 ```
 
-After `make link`, turn on ChronoCCG in Settings → Community plugins in the example vault. Reload the plugin after each build, or use the Hot Reload plugin.
+After `make link`, turn on ChronoVault in Settings → Community plugins in the example vault. Reload the plugin after each build, or use the Hot Reload plugin.
 
 ```
 .

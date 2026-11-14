@@ -1,5 +1,5 @@
 import { App, ButtonComponent, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { DataSourceId } from "../data/DataSync";
 import { BuilderDraft, emptyDeck } from "../ui/DeckBuilderView";
 import { ConfirmModal } from "../ui/ConfirmModal";
@@ -63,7 +63,7 @@ export class ChronoSettingsTab extends PluginSettingTab {
 	/** Rows that show something derived from the settings (e.g. the images to download), redrawn when a setting changes. */
 	private refreshers = new Set<() => void>();
 
-	constructor(app: App, private plugin: ChronoCCGPlugin) {
+	constructor(app: App, private plugin: ChronoVaultPlugin) {
 		super(app, plugin);
 	}
 

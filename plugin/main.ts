@@ -23,7 +23,7 @@ import { deckNoteFrontmatter, firstDeckBlockLink, updateDeckNoteProperties } fro
 import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind, TournamentDeck } from "./src/templates/Templates";
 import { TournamentModal, TournamentOptions } from "./src/ui/TournamentModal";
 
-export default class ChronoCCGPlugin extends Plugin {
+export default class ChronoVaultPlugin extends Plugin {
 	settings!: ChronoSettings;
 	cards = new CardRepository();
 	sync!: DataSync;
@@ -57,8 +57,8 @@ export default class ChronoCCGPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_CARD_BROWSER, (leaf: WorkspaceLeaf) => new CardBrowserView(leaf, this));
 		this.registerView(VIEW_TYPE_DECK_BUILDER, (leaf: WorkspaceLeaf) => new DeckBuilderView(leaf, this));
 
-		this.addRibbonIcon("layers", "ChronoCCG: Open card browser", () => this.activateCardBrowser());
-		this.addRibbonIcon("swords", "ChronoCCG: Open deck builder", () => this.activateDeckBuilder());
+		this.addRibbonIcon("layers", "ChronoVault: Open card browser", () => this.activateCardBrowser());
+		this.addRibbonIcon("swords", "ChronoVault: Open deck builder", () => this.activateDeckBuilder());
 
 		this.registerCommands();
 
@@ -322,12 +322,12 @@ export default class ChronoCCGPlugin extends Plugin {
 		// The editor may hold changes that aren't saved to disk yet.
 		const text = view?.file === file ? view.editor.getValue() : await this.app.vault.read(file);
 		const deck = this.firstDeck(text);
-		if (!deck) return void new Notice("ChronoCCG: this note has no chrono-deck block.");
+		if (!deck) return void new Notice("ChronoVault: this note has no chrono-deck block.");
 		try {
 			const changed = await updateDeckNoteProperties(this, file, deck);
-			new Notice(changed.length ? `ChronoCCG: updated ${changed.join(", ")}.` : "ChronoCCG: properties are already up to date.");
+			new Notice(changed.length ? `ChronoVault: updated ${changed.join(", ")}.` : "ChronoVault: properties are already up to date.");
 		} catch (err) {
-			new Notice(`ChronoCCG: could not update properties — ${(err as Error).message}`);
+			new Notice(`ChronoVault: could not update properties — ${(err as Error).message}`);
 		}
 	}
 
@@ -347,7 +347,7 @@ export default class ChronoCCGPlugin extends Plugin {
 			await this.saveSettings();
 		}
 		const kept = written < Object.keys(TEMPLATE_FILE_NAMES).length ? " (existing files kept)" : "";
-		new Notice(`ChronoCCG: wrote ${written} template(s) to ${folder}${kept}.`);
+		new Notice(`ChronoVault: wrote ${written} template(s) to ${folder}${kept}.`);
 	}
 
 	/** Save a shrunk copy of every card image (in the selected style) that isn't saved yet. */
@@ -357,9 +357,9 @@ export default class ChronoCCGPlugin extends Plugin {
 		const saved = result.done - result.failed;
 		const failed = result.failed ? `, ${result.failed} failed` : "";
 		// Turning off "Save card images" stops the download and deletes what it saved.
-		if (!this.settings.cacheImages) new Notice("ChronoCCG: image download stopped.");
-		else if (result.cancelled) new Notice(`ChronoCCG: image download stopped (${saved} saved${failed}).`);
-		else new Notice(`ChronoCCG: saved ${saved} card image${saved === 1 ? "" : "s"}${failed}.`);
+		if (!this.settings.cacheImages) new Notice("ChronoVault: image download stopped.");
+		else if (result.cancelled) new Notice(`ChronoVault: image download stopped (${saved} saved${failed}).`);
+		else new Notice(`ChronoVault: saved ${saved} card image${saved === 1 ? "" : "s"}${failed}.`);
 	}
 
 	/** @returns true when the settings were moved off the removed runeterra.ar source. */
@@ -396,7 +396,7 @@ export default class ChronoCCGPlugin extends Plugin {
 	/** Notice shown when only the placeholder seed is loaded. */
 	private notifyNoCardData(reason?: string): void {
 		new Notice(
-			"ChronoCCG: card data is not loaded yet" +
+			"ChronoVault: card data is not loaded yet" +
 				(reason ? ` (${reason})` : "") +
 				'. Run "Refresh card database" when you are online.',
 			10_000,
@@ -410,7 +410,7 @@ export default class ChronoCCGPlugin extends Plugin {
 	async refreshCardDatabase(silent = false, reportFailure = false): Promise<void> {
 		if (this.settings.dataSource === "bundled") {
 			this.cards.load(SEED_DATABASE);
-			if (!silent) new Notice("ChronoCCG: using bundled seed data.");
+			if (!silent) new Notice("ChronoVault: using bundled seed data.");
 			this.refreshOpenViews();
 			return;
 		}
@@ -424,11 +424,11 @@ export default class ChronoCCGPlugin extends Plugin {
 			await this.sync.writeCache(db);
 			this.settings.lastSyncIso = new Date().toISOString();
 			await this.saveSettings();
-			if (!silent) new Notice(`ChronoCCG: loaded ${db.cards.length} cards from ${db.source}.`);
+			if (!silent) new Notice(`ChronoVault: loaded ${db.cards.length} cards from ${db.source}.`);
 			this.refreshOpenViews();
 		} catch (err) {
-			console.error("ChronoCCG refresh failed", err);
-			if (!silent) new Notice(`ChronoCCG refresh failed: ${(err as Error).message}`);
+			console.error("ChronoVault refresh failed", err);
+			if (!silent) new Notice(`ChronoVault refresh failed: ${(err as Error).message}`);
 			else if (reportFailure) this.notifyNoCardData((err as Error).message);
 		}
 	}

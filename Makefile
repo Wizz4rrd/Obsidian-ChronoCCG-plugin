@@ -1,10 +1,10 @@
-# ChronoCCG plugin — common dev tasks.
+# ChronoVault plugin — common dev tasks.
 # Everything runs inside Docker so no Node toolchain is needed on the host.
 
 COMPOSE ?= docker compose
 # Always anchor paths to the Makefile's directory, never the caller's $PWD.
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-VAULT_PLUGIN_DIR := $(ROOT)/example-vault/.obsidian/plugins/chronoccg
+VAULT_PLUGIN_DIR := $(ROOT)/example-vault/.obsidian/plugins/chronovault
 
 .PHONY: help image install build dev test lint shell clean link unlink reinstall
 

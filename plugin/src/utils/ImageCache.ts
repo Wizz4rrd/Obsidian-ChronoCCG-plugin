@@ -1,5 +1,5 @@
 import { requestUrl } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { fitWidth, pngSize } from "./imageSize";
 
 const CACHE_DIR = "image-cache";
@@ -30,7 +30,7 @@ export interface DownloadProgress {
  * so it is never fetched twice.
  */
 export class ImageCache {
-	private plugin: ChronoCCGPlugin | null = null;
+	private plugin: ChronoVaultPlugin | null = null;
 	/** File names in the cache folder: read once, then kept up to date. */
 	private onDisk = new Set<string>();
 	private index: Promise<void> | null = null;
@@ -56,7 +56,7 @@ export class ImageCache {
 	private job: { progress: DownloadProgress; controller: AbortController } | null = null;
 	private downloadListeners = new Set<(p: DownloadProgress) => void>();
 
-	init(plugin: ChronoCCGPlugin): void {
+	init(plugin: ChronoVaultPlugin): void {
 		this.plugin = plugin;
 		this.reset();
 		void this.loadIndex();

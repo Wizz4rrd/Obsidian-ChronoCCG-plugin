@@ -1,5 +1,5 @@
 import { debounce, ItemView, Notice, Platform, setIcon, TFile, WorkspaceLeaf } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { poolCards, poolCardState, poolScopeKey } from "../data/BuilderPool";
 import { decodeDeck } from "../data/DeckCodec";
 import { sortEntries, toCodeBlock } from "../data/DeckExport";
@@ -18,7 +18,7 @@ import { firstDeckBlockLink, updateDeckNoteProperties } from "../templates/DeckN
 import { today } from "../templates/Templates";
 import { imageCache } from "../utils/ImageCache";
 
-export const VIEW_TYPE_DECK_BUILDER = "chronoccg-deck-builder";
+export const VIEW_TYPE_DECK_BUILDER = "chronovault-deck-builder";
 
 /** Where the deck being edited came from, so "Save" can write it back. */
 export interface DeckSourceLink {
@@ -66,7 +66,7 @@ export class DeckBuilderView extends ItemView {
 	private persist = debounce(() => void this.plugin.saveSettings(), 400, true);
 	private renderPoolSoon = debounce(() => this.renderPool(), 150, true);
 
-	constructor(leaf: WorkspaceLeaf, private plugin: ChronoCCGPlugin) {
+	constructor(leaf: WorkspaceLeaf, private plugin: ChronoVaultPlugin) {
 		super(leaf);
 	}
 
@@ -76,7 +76,7 @@ export class DeckBuilderView extends ItemView {
 
 	getDisplayText(): string {
 		const name = this.draft.deck.name;
-		return name ? `Deck: ${name}` : "ChronoCCG deck builder";
+		return name ? `Deck: ${name}` : "ChronoVault deck builder";
 	}
 
 	getIcon(): string {
@@ -240,7 +240,7 @@ export class DeckBuilderView extends ItemView {
 			`${cards.length} cards${cards.length > shown.length ? ` (showing ${shown.length})` : ""} • ${howTo}, “Diver” to set as Diver`,
 		);
 		if (this.plugin.cards.size <= 1) {
-			this.poolStatusEl.setText('No card data yet — run "ChronoCCG: Refresh card database".');
+			this.poolStatusEl.setText('No card data yet — run "ChronoVault: Refresh card database".');
 		}
 
 		for (const card of shown) this.poolTiles.push(this.renderPoolTile(card));
@@ -437,14 +437,14 @@ export class DeckBuilderView extends ItemView {
 						try {
 							updated.push(...(await updateDeckNoteProperties(this.plugin, file, this.deck)));
 						} catch (err) {
-							new Notice(`ChronoCCG: could not update the note properties — ${(err as Error).message}`);
+							new Notice(`ChronoVault: could not update the note properties — ${(err as Error).message}`);
 						}
 					}
 					if (logged) updated.push("changelog");
-					new Notice(`ChronoCCG: saved deck to ${src.path}${updated.length ? ` (updated ${updated.join(", ")})` : ""}.`);
+					new Notice(`ChronoVault: saved deck to ${src.path}${updated.length ? ` (updated ${updated.join(", ")})` : ""}.`);
 					return;
 				}
-				new Notice("ChronoCCG: the original deck block is gone — saving as a new note instead.");
+				new Notice("ChronoVault: the original deck block is gone — saving as a new note instead.");
 			}
 		}
 		const file = await this.plugin.templates.createDeckNote(this.deck);
