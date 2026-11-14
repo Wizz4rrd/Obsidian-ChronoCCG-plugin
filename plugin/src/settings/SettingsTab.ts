@@ -136,13 +136,28 @@ export class ChronoSettingsTab extends PluginSettingTab {
 			.setName("Save card images")
 			.setDesc(
 				`Download each card image once and keep a ${CACHED_IMAGE_WIDTH}px copy in the plugin folder, so cards also show offline. ` +
-					"When off, the full-size images (about 1.3 MB each) are loaded every time.",
+					"When off, the full-size images (about 1.3 MB each) are loaded every time, and the saved ones are deleted.",
 			)
 			.addToggle((t) =>
 				t.setValue(s.cacheImages).onChange(async (v) => {
-					s.cacheImages = v;
-					await save();
-					showDownload(imageCache.downloadProgress);
+					if (v === s.cacheImages) return;
+					const { files, bytes } = v ? { files: 0, bytes: 0 } : await imageCache.stats();
+					if (v || !files) {
+						s.cacheImages = v;
+						await save();
+						showDownload(imageCache.downloadProgress);
+						return;
+					}
+					new ConfirmModal(this.app, {
+						title: "Stop saving card images",
+						message:
+							`This deletes the ${files} saved image${files === 1 ? "" : "s"} (${(bytes / 1024 / 1024).toFixed(1)} MB). ` +
+							"Cards then load the full-size images (about 1.3 MB each) from the internet every time, and don't show offline.",
+						cta: "Turn off and delete",
+						warning: true,
+						onConfirm: () => void this.stopSavingImages(),
+						onCancel: () => t.setValue(true),
+					}).open();
 				}),
 			);
 
@@ -298,6 +313,14 @@ export class ChronoSettingsTab extends PluginSettingTab {
 					await save();
 				}),
 			);
+	}
+
+	private async stopSavingImages(): Promise<void> {
+		this.plugin.settings.cacheImages = false;
+		await this.plugin.saveSettings();
+		imageCache.cancelDownload();
+		await imageCache.clear();
+		this.display();
 	}
 
 	private async confirmDownloadAll(urls: string[]): Promise<void> {

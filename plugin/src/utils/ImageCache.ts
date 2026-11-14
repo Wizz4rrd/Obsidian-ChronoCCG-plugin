@@ -261,6 +261,9 @@ export class ImageCache {
 		if (!adapter || !dir) return null;
 		const name = this.fileName(url);
 		const path = `${dir}/${name}`;
+		// A download that was still running when the cache was cleared must not write into it again.
+		const generation = this.generation;
+		const cleared = () => generation !== this.generation;
 		try {
 			if (!(await adapter.exists(path))) {
 				const res = await requestUrl({ url, throw: false });
@@ -269,13 +272,20 @@ export class ImageCache {
 					this.failed.add(url);
 					return null;
 				}
+				const data = await this.shrink(res.arrayBuffer, type);
+				if (cleared()) return null;
 				if (!(await adapter.exists(dir))) await adapter.mkdir(dir);
-				await adapter.writeBinary(path, await this.shrink(res.arrayBuffer, type));
+				await adapter.writeBinary(path, data);
+				if (cleared()) {
+					await adapter.remove(path).catch(() => {});
+					return null;
+				}
 			}
+			if (cleared()) return null;
 			this.onDisk.add(name);
 			return name;
 		} catch {
-			this.failed.add(url);
+			if (!cleared()) this.failed.add(url);
 			return null;
 		}
 	}
