@@ -206,7 +206,7 @@ async function uniquePath(plugin: ChronoCCGPlugin, folder: string, base: string)
 }
 
 /** Local date as YYYY-MM-DD. */
-function today(): string {
+export function today(): string {
 	const d = new Date();
 	const pad = (n: number) => String(n).padStart(2, "0");
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

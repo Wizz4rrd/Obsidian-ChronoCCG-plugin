@@ -4,13 +4,16 @@ import { POOL_COST_MAX, poolCards, poolCardState, poolScopeKey } from "../data/B
 import { decodeDeck } from "../data/DeckCodec";
 import { sortEntries, toCodeBlock } from "../data/DeckExport";
 import { deckStats, DIVER_COUNT, isDiverEligible, MAIN_DECK_SIZE, MAX_COPIES, validateDeck } from "../data/DeckRules";
-import { findFirstDeckBlock, unwrapDeckCode } from "../data/deckInput";
+import { logDeckChange } from "../data/deckChangelog";
+import { findFirstDeckBlock, locateDeckBlock, unwrapDeckCode } from "../data/deckInput";
 import { Card, Deck, Syndicate, SYNDICATES } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
 import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, renderUnknownDeckRow, showExportMenu } from "./DeckWidgets";
 import { TextPromptModal } from "./TextPromptModal";
+import { parseDeck } from "../markdown/DeckCodeBlock";
 import { updateDeckNoteProperties } from "../templates/DeckNoteSync";
+import { today } from "../templates/Templates";
 import { imageCache } from "../utils/ImageCache";
 
 export const VIEW_TYPE_DECK_BUILDER = "chronoccg-deck-builder";
@@ -20,6 +23,8 @@ export interface DeckSourceLink {
 	path: string;
 	lineStart: number;
 	lineEnd: number;
+	/** Block content when it was opened or last saved, to find it again if the note changed above it. */
+	body?: string;
 }
 
 export interface BuilderDraft {
@@ -409,46 +414,56 @@ export class DeckBuilderView extends ItemView {
 	}
 
 	private async save(): Promise<void> {
-		const block = toCodeBlock(this.deck, this.plugin.cards).replace(/\n$/, "");
+		const block = toCodeBlock(this.deck, this.plugin.cards).replace(/\n$/, "").split("\n");
 		const src = this.draft.source;
 		if (src) {
 			const file = this.app.vault.getAbstractFileByPath(src.path);
 			if (file instanceof TFile) {
 				let ok = false;
 				let isFirstBlock = false;
+				let logged = false;
 				await this.app.vault.process(file, (text) => {
 					const lines = text.split("\n");
-					const start = lines[src.lineStart]?.trim() ?? "";
-					const end = lines[src.lineEnd]?.trim() ?? "";
-					if (!/^(`{3,}|~{3,})\s*chrono-deck\b/.test(start) || !/^(`{3,}|~{3,})\s*$/.test(end)) return text;
-					isFirstBlock = findFirstDeckBlock(lines)?.start === src.lineStart;
-					lines.splice(src.lineStart, src.lineEnd - src.lineStart + 1, ...block.split("\n"));
-					src.lineEnd = src.lineStart + block.split("\n").length - 1;
+					const range = locateDeckBlock(lines, src);
+					if (!range) return text;
+					isFirstBlock = findFirstDeckBlock(lines)?.start === range.start;
+					const before = parseDeck(this.plugin, lines.slice(range.start + 1, range.end).join("\n"));
+					lines.splice(range.start, range.end - range.start + 1, ...block);
+					src.lineStart = range.start;
+					src.lineEnd = range.start + block.length - 1;
+					src.body = block.slice(1, -1).join("\n");
 					ok = true;
-					return lines.join("\n");
+					const saved = lines.join("\n");
+					if (!isFirstBlock || !this.plugin.settings.deckChangelog) return saved;
+					const withLog = logDeckChange(saved, before, this.deck, this.plugin.cards, today());
+					logged = withLog !== saved;
+					return withLog;
 				});
 				if (ok) {
 					this.persist();
-					let updated: string[] = [];
+					const updated: string[] = [];
 					if (isFirstBlock) {
 						try {
-							updated = await updateDeckNoteProperties(this.plugin, file, this.deck);
+							updated.push(...(await updateDeckNoteProperties(this.plugin, file, this.deck)));
 						} catch (err) {
 							new Notice(`ChronoCCG: could not update the note properties — ${(err as Error).message}`);
 						}
 					}
+					if (logged) updated.push("changelog");
 					new Notice(`ChronoCCG: saved deck to ${src.path}${updated.length ? ` (updated ${updated.join(", ")})` : ""}.`);
 					return;
 				}
-				new Notice("ChronoCCG: the original deck block moved — saving as a new note instead.");
+				new Notice("ChronoCCG: the original deck block is gone — saving as a new note instead.");
 			}
 		}
 		const file = await this.plugin.templates.createDeckNote(this.deck);
 		if (file) {
 			const lines = (await this.app.vault.read(file)).split("\n");
-			const lineStart = lines.findIndex((l) => /^```chrono-deck/.test(l.trim()));
-			const lineEnd = lines.findIndex((l, i) => i > lineStart && l.trim() === "```");
-			if (lineStart >= 0 && lineEnd > lineStart) this.draft.source = { path: file.path, lineStart, lineEnd };
+			const range = findFirstDeckBlock(lines);
+			if (range) {
+				const body = lines.slice(range.start + 1, range.end).join("\n");
+				this.draft.source = { path: file.path, lineStart: range.start, lineEnd: range.end, body };
+			}
 			this.changed();
 		}
 	}

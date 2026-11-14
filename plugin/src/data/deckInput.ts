@@ -40,3 +40,29 @@ export function findDeckBlockAt(lines: string[], line: number): { start: number;
 	}
 	return null;
 }
+
+/** The ```chrono-deck block whose content is `body` (ignoring surrounding whitespace). */
+export function findDeckBlockByBody(lines: string[], body: string): { start: number; end: number } | null {
+	const want = body.trim();
+	for (let i = 0; i < lines.length; i++) {
+		if (!DECK_FENCE.test(lines[i].trim())) continue;
+		const range = findDeckBlockAt(lines, i);
+		if (!range) return null;
+		if (lines.slice(range.start + 1, range.end).join("\n").trim() === want) return range;
+		i = range.end;
+	}
+	return null;
+}
+
+/**
+ * The block a deck builder draft came from: still at its first line, or found
+ * again by its content when the note changed above it.
+ */
+export function locateDeckBlock(
+	lines: string[],
+	link: { lineStart: number; body?: string },
+): { start: number; end: number } | null {
+	const at = DECK_FENCE.test(lines[link.lineStart]?.trim() ?? "") ? findDeckBlockAt(lines, link.lineStart) : null;
+	if (at) return at;
+	return link.body === undefined ? null : findDeckBlockByBody(lines, link.body);
+}
