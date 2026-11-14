@@ -75,7 +75,7 @@ Saving a deck note from the deck builder also adds a line to its "Changelog" sec
 
 ### Limitations
 
-- Desktop only for now (see below).
+- Mobile (iPad, Android tablets, phones) is not tested yet. The deck builder has a touch layout for tablets, but expect rough edges on mobile, and please report what you find.
 
 ## Network use
 
@@ -94,7 +94,7 @@ The card list (`card-cache.json`) and the images and icons (`image-cache/`) are 
 
 ## Plans
 
-- Mobile support
+- Tested mobile support (tablets first)
 - Matchup stats (win rates per deck and opponent) from your matchup notes
 
 ## Development
