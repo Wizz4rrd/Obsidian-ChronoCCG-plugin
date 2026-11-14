@@ -1,7 +1,7 @@
 {
 	"id": "chronoccg",
 	"name": "ChronoCCG",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"minAppVersion": "1.14.4",
 	"description": "Browse ChronoCCG cards, build and validate decks, and write deck, matchup and tournament notes.",
 	"author": "Wizz4rrd",
