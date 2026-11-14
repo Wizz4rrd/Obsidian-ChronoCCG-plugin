@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-chronoccg",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "Obsidian plugin for the ChronoCCG card game.",
 	"main": "main.js",
 	"scripts": {
