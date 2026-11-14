@@ -9,8 +9,16 @@ export interface CardQuery {
 	/** Card must use one of these spell speeds (e.g. Immediate). Units with no speed never match. */
 	spellSpeeds?: string[];
 	sets?: string[];
-	minCost?: number;
-	maxCost?: number;
+	/** Card costs one of these; {@link COST_FILTER_MAX} stands for that cost and above. */
+	costs?: ReadonlySet<number>;
+}
+
+/** Highest cost filter: "7+". */
+export const COST_FILTER_MAX = 7;
+
+/** The cost filter a card falls under (7 and above all count as 7+). */
+export function costBucket(cost: number): number {
+	return Math.min(Math.max(0, cost), COST_FILTER_MAX);
 }
 
 /** The flipped side of an Agent that immortalizes; a separate card that can't be put in a deck. */
@@ -151,8 +159,7 @@ export class CardRepository {
 				if (!ss || !query.spellSpeeds.includes(ss)) continue;
 			}
 			if (query.sets?.length && !query.sets.includes(c.set ?? "")) continue;
-			if (query.minCost !== undefined && c.cost < query.minCost) continue;
-			if (query.maxCost !== undefined && c.cost > query.maxCost) continue;
+			if (query.costs?.size && !query.costs.has(costBucket(c.cost))) continue;
 			if (tokens.length) {
 				const hay = searchHaystack(c);
 				if (tokens.some((t) => !hay.includes(t))) continue;

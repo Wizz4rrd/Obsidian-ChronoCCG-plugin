@@ -5,6 +5,7 @@ import { isDiverEligible } from "../data/DeckRules";
 import { Card, SYNDICATES, Syndicate } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
+import { CostChips, renderCostChips } from "./CostChips";
 import { renderSyndicateIcon } from "./SyndicateIcon";
 import { imageCache } from "../utils/ImageCache";
 
@@ -13,13 +14,6 @@ export const VIEW_TYPE_CARD_BROWSER = "chronoccg-card-browser";
 /** Limits of the filters' share of the pane, so neither side can be dragged away. */
 const MIN_FILTERS_PERCENT = 10;
 const MAX_FILTERS_PERCENT = 85;
-
-function parseCostInput(value: string): number | undefined {
-	const t = value.trim();
-	if (!t) return undefined;
-	const n = Number(t);
-	return Number.isFinite(n) ? n : undefined;
-}
 
 export class CardBrowserView extends ItemView {
 	private query = "";
@@ -34,8 +28,8 @@ export class CardBrowserView extends ItemView {
 	private dynamicFiltersEl!: HTMLElement;
 	private clearBtn!: HTMLButtonElement;
 	private searchInput!: HTMLInputElement;
-	private minCostInput!: HTMLInputElement;
-	private maxCostInput!: HTMLInputElement;
+	private costFilter = new Set<number>();
+	private costChips!: CostChips;
 	private filterSourceKey = "";
 	private refreshSoon = debounce(() => this.refresh(), 150, true);
 
@@ -78,21 +72,7 @@ export class CardBrowserView extends ItemView {
 
 		const costSection = filtersPanel.createDiv({ cls: "chrono-browser-section" });
 		costSection.createDiv({ cls: "chrono-browser-section-title", text: "Energy cost" });
-		const costRow = costSection.createDiv({ cls: "chrono-filter-cost chrono-filter-cost--panel" });
-		this.minCostInput = costRow.createEl("input", {
-			type: "number",
-			cls: "chrono-filter-num",
-			attr: { min: "0", placeholder: "Min" },
-		});
-		costRow.createSpan({ text: "–", cls: "chrono-filter-cost-sep" });
-		this.maxCostInput = costRow.createEl("input", {
-			type: "number",
-			cls: "chrono-filter-num",
-			attr: { min: "0", placeholder: "Max" },
-		});
-		const bumpSearch = () => this.refreshSoon();
-		this.minCostInput.addEventListener("input", bumpSearch);
-		this.maxCostInput.addEventListener("input", bumpSearch);
+		this.costChips = renderCostChips(costSection, this.costFilter, () => this.refresh());
 
 		const syndSection = filtersPanel.createDiv({ cls: "chrono-browser-section" });
 		syndSection.createDiv({ cls: "chrono-browser-section-title", text: "Syndicates" });
@@ -204,8 +184,8 @@ export class CardBrowserView extends ItemView {
 		this.setFilter.clear();
 		this.query = "";
 		this.searchInput.value = "";
-		this.minCostInput.value = "";
-		this.maxCostInput.value = "";
+		this.costFilter.clear();
+		this.costChips.sync();
 		this.contentEl.querySelectorAll(".chrono-syndicate-btn, .chrono-filter-chip").forEach((el) => {
 			el.classList.remove("is-active");
 		});
@@ -216,8 +196,7 @@ export class CardBrowserView extends ItemView {
 		let n = this.syndicateFilter.size + this.typeFilter.size + this.rarityFilter.size + this.spellSpeedFilter.size;
 		n += this.keywordFilter.size + this.setFilter.size;
 		if (this.query.trim()) n++;
-		if (parseCostInput(this.minCostInput.value) !== undefined) n++;
-		if (parseCostInput(this.maxCostInput.value) !== undefined) n++;
+		if (this.costFilter.size) n++;
 		return n;
 	}
 
@@ -237,9 +216,6 @@ export class CardBrowserView extends ItemView {
 
 		this.ensureDynamicFilterChips();
 
-		const minCost = parseCostInput(this.minCostInput.value);
-		const maxCost = parseCostInput(this.maxCostInput.value);
-
 		const matches = this.plugin.cards.search(
 			{
 				text: this.query || undefined,
@@ -249,8 +225,7 @@ export class CardBrowserView extends ItemView {
 				spellSpeeds: this.spellSpeedFilter.size ? Array.from(this.spellSpeedFilter) : undefined,
 				keywords: this.keywordFilter.size ? Array.from(this.keywordFilter) : undefined,
 				sets: this.setFilter.size ? Array.from(this.setFilter) : undefined,
-				minCost,
-				maxCost,
+				costs: this.costFilter,
 			},
 			500,
 		);

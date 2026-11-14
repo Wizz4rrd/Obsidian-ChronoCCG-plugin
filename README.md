@@ -10,7 +10,7 @@ If you cloned the repo, you can try it in the example vault: open `example-vault
 - Card images: put card names in a `chrono-card` block, one per line. Add a line with `full` if you want them big.
 - Decks: a `chrono-deck` block takes a deck code, a simple list or YAML (examples below). It checks the deck against the [rules](https://playchrono.com/rules) (2 Divers, 40 cards, max 3 copies, only your Divers' syndicates), shows the energy curve and the type/syndicate split, and has buttons to copy the code, export the deck or open it in the builder.
 - Deck builder: opens in its own tab. Filter the card pool (you can show only the cards your Divers can play), add/remove cards, and save the deck back to the note it came from or to a new note. Saving a deck note also updates its properties and adds what changed to its "Changelog" section.
-- Card browser: a page or a sidebar pane with filters for cost, syndicate, spell speed, rarity, type, keyword and set. Click a card to insert it, add it to the builder or see the details.
+- Card browser: a page or a sidebar pane with filters for cost (click one or more, 0 to 7+), syndicate, spell speed, rarity, type, keyword and set. The deck builder has the same cost filter. Click a card to insert it, add it to the builder or see the details.
 - Templates for deck, matchup and tournament notes. The frontmatter works with Dataview. You can replace them with your own.
 
 Deck codes work both ways with the game and with deck sites that use the same format.
