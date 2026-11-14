@@ -145,6 +145,7 @@ export class CardRepository {
 		return this.getByName(trimmed);
 	}
 
+	/** Cards matching `query`, cheapest first (then by name), at most `limit` of them. */
 	search(query: CardQuery, limit = 200): Card[] {
 		const raw = query.text?.toLowerCase().trim() ?? "";
 		const tokens = raw.split(/\s+/).filter(Boolean);
@@ -165,10 +166,13 @@ export class CardRepository {
 				if (tokens.some((t) => !hay.includes(t))) continue;
 			}
 			out.push(c);
-			if (out.length >= limit) break;
 		}
-		return out;
+		return out.sort(byCostThenName).slice(0, limit);
 	}
+}
+
+function byCostThenName(a: Card, b: Card): number {
+	return a.cost - b.cost || a.name.localeCompare(b.name);
 }
 
 function searchHaystack(c: Card): string {

@@ -61,3 +61,15 @@ test("pool card state counts copies and marks maxed cards", () => {
 	assert.deepEqual(poolCardState(deck, 8), { count: 3, isDiver: false, maxed: true });
 	assert.deepEqual(poolCardState(deck, 5), { count: 0, isDiver: true, maxed: true });
 });
+
+test("search lists cards cheapest first, then by name, before applying the limit", () => {
+	const cards = repo([card(1, { name: "Zed", cost: 5 }), card(2, { name: "Bo", cost: 1 }), card(3, { name: "Al", cost: 1 }), card(4, { cost: 0 })]);
+	assert.deepEqual(
+		cards.search({}).map((c) => c.id),
+		[4, 3, 2, 1],
+	);
+	assert.deepEqual(
+		cards.search({}, 2).map((c) => c.id),
+		[4, 3],
+	);
+});
