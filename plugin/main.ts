@@ -8,6 +8,7 @@ import { registerCardCodeBlock } from "./src/markdown/CardCodeBlock";
 import { parseDeck, registerDeckCodeBlock } from "./src/markdown/DeckCodeBlock";
 import { findDeckBlockAt, findFirstDeckBlock } from "./src/data/deckInput";
 import { registerInlineCardRefs } from "./src/markdown/InlineCardRef";
+import { registerDecksBasesView } from "./src/bases/DecksBasesView";
 import { CardBrowserView, VIEW_TYPE_CARD_BROWSER } from "./src/ui/CardBrowserView";
 import { CardDetailModal, removeCardPopovers } from "./src/ui/CardPreview";
 import { CardSuggestModal } from "./src/ui/CardSuggestModal";
@@ -49,6 +50,7 @@ export default class ChronoCCGPlugin extends Plugin {
 		registerCardCodeBlock(this);
 		registerDeckCodeBlock(this);
 		registerInlineCardRefs(this);
+		registerDecksBasesView(this);
 
 		// Views
 		this.registerView(VIEW_TYPE_CARD_BROWSER, (leaf: WorkspaceLeaf) => new CardBrowserView(leaf, this));
