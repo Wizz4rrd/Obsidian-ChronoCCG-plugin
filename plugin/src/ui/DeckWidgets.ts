@@ -5,6 +5,7 @@ import { CURVE_MAX, DeckIssue, DeckStats, DIVER_COUNT, MAIN_DECK_SIZE } from "..
 import { Card, Deck, SYNDICATES } from "../data/types";
 import { attachCardPreview } from "./CardPreview";
 import { syndicateClass, UNKNOWN_CARD_HINT } from "./CardTile";
+import { renderSyndicateIcon } from "./SyndicateIcon";
 
 /** Small bar chart of the main deck's energy curve. */
 export function renderCurve(parent: HTMLElement, stats: DeckStats): HTMLElement {
@@ -32,7 +33,10 @@ export function renderDeckChips(parent: HTMLElement, deck: Deck, stats: DeckStat
 	for (const [type, n] of Object.entries(stats.byType).sort()) chip(`${n} ${type}${n === 1 ? "" : "s"}`);
 	for (const s of SYNDICATES) {
 		const n = stats.bySyndicate[s];
-		if (n) chip(`${s} ${n}`, `chrono-synd-${s.toLowerCase()} chrono-chip-synd`);
+		if (!n) continue;
+		const c = chip("", `chrono-synd-${s.toLowerCase()} chrono-chip-synd`);
+		renderSyndicateIcon(c, s);
+		c.appendText(`${s} ${n}`);
 	}
 	if (stats.mainCount) chip(`avg ${stats.averageCost.toFixed(2)}`);
 	return row;
@@ -119,6 +123,7 @@ export function renderDeckRow(plugin: ChronoCCGPlugin, parent: HTMLElement, card
 	const row = parent.createDiv({ cls: ["chrono-deck-row", syndicateClass(card)] });
 	if (opts.invalid) row.addClass("is-invalid");
 	row.createSpan({ cls: "chrono-row-cost", text: String(card.cost) });
+	for (const s of card.syndicates) renderSyndicateIcon(row, s);
 	const name = row.createSpan({ cls: "chrono-row-name", text: card.name });
 	attachCardPreview(plugin, name, card, { tapToOpen: true });
 	row.createSpan({ cls: "chrono-row-type", text: card.spellSpeed ?? card.type });

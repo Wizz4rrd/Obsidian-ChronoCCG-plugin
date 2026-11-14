@@ -4,6 +4,7 @@ import { isDiverEligible } from "../data/DeckRules";
 import { Card, SYNDICATES, Syndicate } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
+import { renderSyndicateIcon } from "./SyndicateIcon";
 import { imageCache } from "../utils/ImageCache";
 
 export const VIEW_TYPE_CARD_BROWSER = "chronoccg-card-browser";
@@ -92,7 +93,9 @@ export class CardBrowserView extends ItemView {
 		syndSection.createDiv({ cls: "chrono-browser-section-title", text: "Syndicates" });
 		const syndRow = syndSection.createDiv({ cls: "chrono-filter-chips" });
 		for (const s of SYNDICATES) {
-			const btn = syndRow.createEl("button", { text: s, cls: "chrono-syndicate-btn" });
+			const btn = syndRow.createEl("button", { cls: "chrono-syndicate-btn" });
+			renderSyndicateIcon(btn, s);
+			btn.appendText(s);
 			btn.addEventListener("click", () => {
 				if (this.syndicateFilter.has(s)) this.syndicateFilter.delete(s);
 				else this.syndicateFilter.add(s);

@@ -10,6 +10,7 @@ import { Card, Deck, Syndicate, SYNDICATES } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
 import { renderCardTile } from "./CardTile";
 import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, renderUnknownDeckRow, showExportMenu } from "./DeckWidgets";
+import { renderSyndicateIcon } from "./SyndicateIcon";
 import { TextPromptModal } from "./TextPromptModal";
 import { parseDeck } from "../markdown/DeckCodeBlock";
 import { updateDeckNoteProperties } from "../templates/DeckNoteSync";
@@ -184,7 +185,9 @@ export class DeckBuilderView extends ItemView {
 
 		const chips = bar.createDiv({ cls: "chrono-filter-chips" });
 		for (const s of SYNDICATES) {
-			const b = chips.createEl("button", { cls: `chrono-filter-chip chrono-synd-${s.toLowerCase()}`, text: s });
+			const b = chips.createEl("button", { cls: `chrono-filter-chip chrono-synd-${s.toLowerCase()}` });
+			renderSyndicateIcon(b, s);
+			b.appendText(s);
 			this.syndicateBtns.set(s, b);
 			b.addEventListener("click", () => {
 				if (this.poolSyndicates.has(s)) this.poolSyndicates.delete(s);
