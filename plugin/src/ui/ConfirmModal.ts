@@ -29,7 +29,7 @@ export class ConfirmModal extends Modal {
 					this.close();
 					this.opts.onConfirm();
 				});
-				if (this.opts.warning) b.setWarning();
+				if (this.opts.warning) b.setDestructive().setCta();
 				else b.setCta();
 			});
 	}

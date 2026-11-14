@@ -1,4 +1,4 @@
-import { App, ButtonComponent, PluginSettingTab, Setting } from "obsidian";
+import { App, ButtonComponent, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
 import type ChronoCCGPlugin from "../../main";
 import { DataSourceId } from "../data/DataSync";
 import { BuilderDraft, emptyDeck } from "../ui/DeckBuilderView";
@@ -48,131 +48,220 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 	builderDraft: { deck: emptyDeck() },
 };
 
+/** Keys of {@link ChronoSettings} bound to a declarative control. */
+type ControlKey = "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog";
+
 export class ChronoSettingsTab extends PluginSettingTab {
-	private stopListening: (() => void) | null = null;
+	/** Rows that show something derived from the settings (e.g. the images to download), redrawn when a setting changes. */
+	private refreshers = new Set<() => void>();
 
 	constructor(app: App, private plugin: ChronoCCGPlugin) {
 		super(app, plugin);
 	}
 
-	hide(): void {
-		this.stopListening?.();
-		this.stopListening = null;
-		super.hide();
+	getControlValue(key: string): unknown {
+		return this.plugin.settings[key as keyof ChronoSettings];
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		this.stopListening?.();
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		const s = this.plugin.settings as unknown as Record<ControlKey, unknown>;
+		s[key as ControlKey] = normalizeControlValue(key as ControlKey, value);
+		await this.plugin.saveSettings();
+		// "Custom data URL" is only shown for the custom source; each image style has its own images to download.
+		this.refreshDomState();
+		this.refreshers.forEach((refresh) => refresh());
+	}
+
+	getSettingDefinitions(): SettingDefinitionItem<ControlKey>[] {
 		const s = this.plugin.settings;
-		const save = () => this.plugin.saveSettings();
+		return [
+			{
+				type: "group",
+				heading: "Card data",
+				items: [
+					{
+						name: "Card data source",
+						desc: "Where to pull the card database from.",
+						control: {
+							type: "dropdown",
+							key: "dataSource",
+							options: { bundled: "Bundled (offline seed)", official: "Official (playchrono.com)", custom: "Custom URL" },
+						},
+					},
+					{
+						name: "Custom data URL",
+						desc: "JSON endpoint returning a card list or { cards: [...] }.",
+						visible: () => s.dataSource === "custom",
+						control: { type: "text", key: "customDataUrl", placeholder: "https://example.com/cards.json" },
+					},
+					{
+						name: "Auto-refresh interval (days)",
+						desc: "Re-download the card database when it is older than this. 0 disables auto-refresh.",
+						control: { type: "number", key: "autoRefreshDays", min: 0, defaultValue: DEFAULT_SETTINGS.autoRefreshDays },
+					},
+					{
+						name: "Refresh card database now",
+						desc: "Downloads the card list again.",
+						aliases: ["sync", "update cards"],
+						render: (setting) => this.renderRefresh(setting),
+					},
+					{
+						name: "Save card images",
+						desc:
+							`Download each card image once and keep a ${CACHED_IMAGE_WIDTH}px copy in the plugin folder, so cards also show offline. ` +
+							"When off, the full-size images (about 1.3 MB each) are loaded every time, and the saved ones are deleted.",
+						aliases: ["cache", "offline"],
+						render: (setting) => this.renderSaveImages(setting),
+					},
+					{
+						name: "Download all card images",
+						desc: "Download every card image that isn't saved yet, so every card also shows offline.",
+						aliases: ["offline", "cache"],
+						render: (setting) => this.renderDownloadAll(setting),
+					},
+					{
+						name: "Clear saved images",
+						desc: "Delete the saved card images and icons.",
+						aliases: ["cache"],
+						render: (setting) => this.renderClearImages(setting),
+					},
+				],
+			},
+			{
+				type: "group",
+				heading: "Display",
+				items: [
+					{
+						name: "Card image style",
+						desc: "In-game: framed card with cost, stats and rules text on the image. Full art: illustration only.",
+						control: { type: "dropdown", key: "cardImageStyle", options: { game: "In-game (framed)", full: "Full art only" } },
+					},
+					{
+						name: "Default deck view",
+						desc: "How chrono-deck blocks render. Each block also has a grid/list toggle.",
+						control: { type: "dropdown", key: "deckView", options: { grid: "Card grid", list: "Compact list" } },
+					},
+					{
+						name: "Hover previews",
+						desc: "Show a large card image when hovering card names and tiles (desktop).",
+						control: { type: "toggle", key: "hoverPreviews" },
+					},
+				],
+			},
+			{
+				type: "group",
+				heading: "Notes",
+				items: [
+					{
+						name: "Notes folder",
+						desc: "Deck, matchup and tournament notes are created in sub-folders of this folder. Empty = vault root.",
+						control: { type: "folder", key: "notesFolder", placeholder: "ChronoCCG", includeRoot: true },
+					},
+					{
+						name: "Template folder",
+						desc:
+							'Optional. A "Deck.md" file in this folder replaces the built-in deck note template. ' +
+							"Placeholders: {{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}.",
+						control: { type: "folder", key: "templateFolder", placeholder: "ChronoCCG/Templates" },
+					},
+					{
+						name: "Default templates",
+						desc: "Copy the built-in deck, matchup and tournament templates into the template folder, so you can edit them. Existing files are kept.",
+						render: (setting) => {
+							setting.addButton((b) =>
+								b.setButtonText("Write templates").onClick(async () => {
+									b.setDisabled(true);
+									try {
+										await this.plugin.writeDefaultTemplates();
+									} finally {
+										b.setDisabled(false);
+									}
+								}),
+							);
+						},
+					},
+					{
+						name: "Log deck changes",
+						desc:
+							'When you save a deck note from the deck builder, add what changed (cards, Divers, name) to the note\'s "Changelog" section. ' +
+							"Saves on the same day are merged into one line.",
+						control: { type: "toggle", key: "deckChangelog" },
+					},
+				],
+			},
+		];
+	}
 
-		new Setting(containerEl).setName("Card data").setHeading();
+	/** Run `refresh` now and whenever a setting changes, until the row is torn down. */
+	private keepFresh(refresh: () => void): () => void {
+		refresh();
+		this.refreshers.add(refresh);
+		return () => this.refreshers.delete(refresh);
+	}
 
-		new Setting(containerEl)
-			.setName("Card data source")
-			.setDesc("Where to pull the card database from.")
-			.addDropdown((d) =>
-				d
-					.addOption("bundled", "Bundled (offline seed)")
-					.addOption("official", "Official (playchrono.com)")
-					.addOption("custom", "Custom URL")
-					.setValue(s.dataSource)
-					.onChange(async (v) => {
-						s.dataSource = v as DataSourceId;
-						await save();
-						this.display();
-					}),
-			);
-
-		if (s.dataSource === "custom") {
-			new Setting(containerEl)
-				.setName("Custom data URL")
-				.setDesc("JSON endpoint returning a card list or { cards: [...] }.")
-				.addText((t) =>
-					t
-						.setPlaceholder("https://example.com/cards.json")
-						.setValue(s.customDataUrl)
-						.onChange(async (v) => {
-							s.customDataUrl = v.trim();
-							await save();
-						}),
-				);
-		}
-
-		new Setting(containerEl)
-			.setName("Auto-refresh interval (days)")
-			.setDesc("Re-download the card database when it is older than this. 0 disables auto-refresh.")
-			.addText((t) =>
-				t.setValue(String(s.autoRefreshDays)).onChange(async (v) => {
-					const n = Number(v);
-					s.autoRefreshDays = Number.isFinite(n) && n >= 0 ? n : 7;
-					await save();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Refresh card database now")
-			.setDesc(
+	private renderRefresh(setting: Setting): () => void {
+		const s = this.plugin.settings;
+		const showStatus = () =>
+			setting.setDesc(
 				`Loaded cards: ${this.plugin.cards.size} • source: ${this.plugin.cards.source} • version: ${this.plugin.cards.version}` +
 					(s.lastSyncIso ? ` • last sync: ${new Date(s.lastSyncIso).toLocaleString()}` : ""),
-			)
-			.addButton((b) =>
-				b
-					.setCta()
-					.setButtonText("Refresh")
-					.onClick(async () => {
-						b.setDisabled(true).setButtonText("Refreshing…");
-						try {
-							await this.plugin.refreshCardDatabase();
-							this.display();
-						} finally {
-							b.setDisabled(false);
-						}
-					}),
 			);
-
-		new Setting(containerEl)
-			.setName("Save card images")
-			.setDesc(
-				`Download each card image once and keep a ${CACHED_IMAGE_WIDTH}px copy in the plugin folder, so cards also show offline. ` +
-					"When off, the full-size images (about 1.3 MB each) are loaded every time, and the saved ones are deleted.",
-			)
-			.addToggle((t) =>
-				t.setValue(s.cacheImages).onChange(async (v) => {
-					if (v === s.cacheImages) return;
-					const { files, bytes } = v ? { files: 0, bytes: 0 } : await imageCache.stats();
-					if (v || !files) {
-						s.cacheImages = v;
-						await save();
-						showDownload(imageCache.downloadProgress);
-						return;
+		setting.addButton((b) =>
+			b
+				.setCta()
+				.setButtonText("Refresh")
+				.onClick(async () => {
+					b.setDisabled(true).setButtonText("Refreshing…");
+					try {
+						await this.plugin.refreshCardDatabase();
+						// New cards change what "Download all" has to download.
+						this.refreshers.forEach((refresh) => refresh());
+					} finally {
+						b.setDisabled(false).setButtonText("Refresh");
 					}
-					new ConfirmModal(this.app, {
-						title: "Stop saving card images",
-						message:
-							`This deletes the ${files} saved image${files === 1 ? "" : "s"} (${(bytes / 1024 / 1024).toFixed(1)} MB). ` +
-							"Cards then load the full-size images (about 1.3 MB each) from the internet every time, and don't show offline.",
-						cta: "Turn off and delete",
-						warning: true,
-						onConfirm: () => void this.stopSavingImages(),
-						onCancel: () => t.setValue(true),
-					}).open();
 				}),
-			);
+		);
+		return this.keepFresh(showStatus);
+	}
 
-		const urls = cardImageUrls(this.plugin.cards.all(), s);
-		const downloadSetting = new Setting(containerEl).setName("Download all card images");
+	private renderSaveImages(setting: Setting): void {
+		const s = this.plugin.settings;
+		setting.addToggle((t) =>
+			t.setValue(s.cacheImages).onChange(async (v) => {
+				if (v === s.cacheImages) return;
+				const { files, bytes } = v ? { files: 0, bytes: 0 } : await imageCache.stats();
+				if (v || !files) {
+					s.cacheImages = v;
+					await this.plugin.saveSettings();
+					this.refreshers.forEach((refresh) => refresh());
+					return;
+				}
+				new ConfirmModal(this.app, {
+					title: "Stop saving card images",
+					message:
+						`This deletes the ${files} saved image${files === 1 ? "" : "s"} (${(bytes / 1024 / 1024).toFixed(1)} MB). ` +
+						"Cards then load the full-size images (about 1.3 MB each) from the internet every time, and don't show offline.",
+					cta: "Turn off and delete",
+					warning: true,
+					onConfirm: () => void this.stopSavingImages(),
+					onCancel: () => t.setValue(true),
+				}).open();
+			}),
+		);
+	}
+
+	private renderDownloadAll(setting: Setting): () => void {
+		const s = this.plugin.settings;
+		let urls: string[] = [];
 		let downloadBtn!: ButtonComponent;
-		downloadSetting.addButton((b) => {
+		setting.addButton((b) => {
 			downloadBtn = b;
 			b.onClick(() => {
 				if (imageCache.downloadProgress?.running) imageCache.cancelDownload();
 				else void this.confirmDownloadAll(urls);
 			});
 		});
-		const downloadText = (saved: number, missing: number): string => {
+		const describe = (saved: number, missing: number): string => {
 			if (!s.cacheImages) return 'Turn on "Save card images" first.';
 			if (!urls.length) return "No card data yet.";
 			if (!missing) return `All ${urls.length} card images are saved.`;
@@ -181,139 +270,54 @@ export class ChronoSettingsTab extends PluginSettingTab {
 				`They are shrunk to ${CACHED_IMAGE_WIDTH}px like the others.`
 			);
 		};
-		const showDownload = (p: DownloadProgress | null) => {
+		const show = (p: DownloadProgress | null) => {
 			if (p?.running) {
-				downloadSetting.setDesc(`Downloading… ${p.done}/${p.total}${p.failed ? ` (${p.failed} failed)` : ""}`);
+				setting.setDesc(`Downloading… ${p.done}/${p.total}${p.failed ? ` (${p.failed} failed)` : ""}`);
 				downloadBtn.setButtonText("Cancel").removeCta().setDisabled(false);
 				return;
 			}
 			void imageCache.savedCount(urls).then((saved) => {
 				const missing = urls.length - saved;
-				downloadSetting.setDesc(downloadText(saved, missing));
+				setting.setDesc(describe(saved, missing));
 				downloadBtn.setButtonText("Download").setCta().setDisabled(!s.cacheImages || missing === 0);
 			});
 		};
-		showDownload(imageCache.downloadProgress);
+		const stopListening = imageCache.onDownloadProgress(show);
+		const stopRefreshing = this.keepFresh(() => {
+			// Each image style has its own images.
+			urls = cardImageUrls(this.plugin.cards.all(), s);
+			show(imageCache.downloadProgress);
+		});
+		return () => {
+			stopListening();
+			stopRefreshing();
+		};
+	}
 
-		const cacheSetting = new Setting(containerEl)
-			.setName("Clear saved images")
-			.setDesc("Counting saved images…")
-			.addButton((b) =>
-				b.setButtonText("Clear").onClick(async () => {
-					b.setDisabled(true);
-					try {
-						await imageCache.clear();
-						this.display();
-					} finally {
-						b.setDisabled(false);
-					}
-				}),
-			);
+	private renderClearImages(setting: Setting): () => void {
 		const showStats = () =>
 			void imageCache.stats().then(({ files, bytes }) => {
-				cacheSetting.setDesc(`${files} image(s), ${(bytes / 1024 / 1024).toFixed(1)} MB.`);
+				setting.setDesc(`${files} image(s), ${(bytes / 1024 / 1024).toFixed(1)} MB.`);
 			});
-		showStats();
-		this.stopListening = imageCache.onDownloadProgress((p) => {
-			showDownload(p);
+		setting.addButton((b) =>
+			b.setButtonText("Clear").onClick(async () => {
+				b.setDisabled(true);
+				try {
+					await imageCache.clear();
+					this.refreshers.forEach((refresh) => refresh());
+				} finally {
+					b.setDisabled(false);
+				}
+			}),
+		);
+		const stopListening = imageCache.onDownloadProgress((p) => {
 			if (!p.running) showStats();
 		});
-
-		new Setting(containerEl).setName("Display").setHeading();
-
-		new Setting(containerEl)
-			.setName("Card image style")
-			.setDesc("In-game: framed card with cost, stats and rules text on the image. Full art: illustration only.")
-			.addDropdown((d) =>
-				d
-					.addOption("game", "In-game (framed)")
-					.addOption("full", "Full art only")
-					.setValue(s.cardImageStyle)
-					.onChange(async (v) => {
-						s.cardImageStyle = v as CardImageStyle;
-						await save();
-						// Each style has its own images to download.
-						this.display();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Default deck view")
-			.setDesc("How chrono-deck blocks render. Each block also has a grid/list toggle.")
-			.addDropdown((d) =>
-				d
-					.addOption("grid", "Card grid")
-					.addOption("list", "Compact list")
-					.setValue(s.deckView)
-					.onChange(async (v) => {
-						s.deckView = v as DeckView;
-						await save();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Hover previews")
-			.setDesc("Show a large card image when hovering card names and tiles (desktop).")
-			.addToggle((t) =>
-				t.setValue(s.hoverPreviews).onChange(async (v) => {
-					s.hoverPreviews = v;
-					await save();
-				}),
-			);
-
-		new Setting(containerEl).setName("Notes").setHeading();
-
-		new Setting(containerEl)
-			.setName("Notes folder")
-			.setDesc("Deck, matchup and tournament notes are created in sub-folders of this folder. Empty = vault root.")
-			.addText((t) =>
-				t
-					.setPlaceholder("ChronoCCG")
-					.setValue(s.notesFolder)
-					.onChange(async (v) => {
-						s.notesFolder = v.trim().replace(/\/+$/, "");
-						await save();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Template folder")
-			.setDesc(
-				'Optional. A "Deck.md" file in this folder replaces the built-in deck note template. ' +
-					"Placeholders: {{name}} {{date}} {{deck}} {{code}} {{divers}} {{syndicates}} {{deckLink}} {{opponent}} {{event}}.",
-			)
-			.addText((t) =>
-				t
-					.setPlaceholder("ChronoCCG/Templates")
-					.setValue(s.templateFolder)
-					.onChange(async (v) => {
-						s.templateFolder = v.trim().replace(/\/+$/, "");
-						await save();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Default templates")
-			.setDesc("Copy the built-in deck, matchup and tournament templates into the template folder, so you can edit them. Existing files are kept.")
-			.addButton((b) =>
-				b.setButtonText("Write templates").onClick(async () => {
-					await this.plugin.writeDefaultTemplates();
-					this.display();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Log deck changes")
-			.setDesc(
-				'When you save a deck note from the deck builder, add what changed (cards, Divers, name) to the note\'s "Changelog" section. ' +
-					"Saves on the same day are merged into one line.",
-			)
-			.addToggle((t) =>
-				t.setValue(s.deckChangelog).onChange(async (v) => {
-					s.deckChangelog = v;
-					await save();
-				}),
-			);
+		const stopRefreshing = this.keepFresh(showStats);
+		return () => {
+			stopListening();
+			stopRefreshing();
+		};
 	}
 
 	private async stopSavingImages(): Promise<void> {
@@ -321,7 +325,7 @@ export class ChronoSettingsTab extends PluginSettingTab {
 		await this.plugin.saveSettings();
 		imageCache.cancelDownload();
 		await imageCache.clear();
-		this.display();
+		this.refreshers.forEach((refresh) => refresh());
 	}
 
 	private async confirmDownloadAll(urls: string[]): Promise<void> {
@@ -336,5 +340,22 @@ export class ChronoSettingsTab extends PluginSettingTab {
 			cta: "Download",
 			onConfirm: () => void this.plugin.downloadAllCardImages(),
 		}).open();
+	}
+}
+
+/** Same clean-up the old text inputs did: trimmed URL, folders without a trailing slash, a valid interval. */
+function normalizeControlValue(key: ControlKey, value: unknown): unknown {
+	switch (key) {
+		case "customDataUrl":
+			return typeof value === "string" ? value.trim() : "";
+		case "notesFolder":
+		case "templateFolder":
+			return typeof value === "string" ? value.trim().replace(/\/+$/, "") : "";
+		case "autoRefreshDays": {
+			const n = Number(value);
+			return Number.isFinite(n) && n >= 0 ? n : DEFAULT_SETTINGS.autoRefreshDays;
+		}
+		default:
+			return value;
 	}
 }
