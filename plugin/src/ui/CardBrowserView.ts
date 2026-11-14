@@ -1,5 +1,5 @@
 import { debounce, ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { DEFAULT_SETTINGS } from "../settings/SettingsTab";
 import { isDiverEligible } from "../data/DeckRules";
 import { Card, SYNDICATES, Syndicate } from "../data/types";
@@ -9,7 +9,7 @@ import { CostChips, renderCostChips } from "./CostChips";
 import { renderSyndicateIcon } from "./SyndicateIcon";
 import { imageCache } from "../utils/ImageCache";
 
-export const VIEW_TYPE_CARD_BROWSER = "chronoccg-card-browser";
+export const VIEW_TYPE_CARD_BROWSER = "chronovault-card-browser";
 
 /** Limits of the filters' share of the pane, so neither side can be dragged away. */
 const MIN_FILTERS_PERCENT = 10;
@@ -33,7 +33,7 @@ export class CardBrowserView extends ItemView {
 	private filterSourceKey = "";
 	private refreshSoon = debounce(() => this.refresh(), 150, true);
 
-	constructor(leaf: WorkspaceLeaf, private plugin: ChronoCCGPlugin) {
+	constructor(leaf: WorkspaceLeaf, private plugin: ChronoVaultPlugin) {
 		super(leaf);
 	}
 
@@ -42,7 +42,7 @@ export class CardBrowserView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "ChronoCCG cards";
+		return "ChronoVault cards";
 	}
 
 	getIcon(): string {
@@ -208,7 +208,7 @@ export class CardBrowserView extends ItemView {
 		this.clearBtn.disabled = active === 0;
 
 		if (this.plugin.cards.size === 0) {
-			this.statusEl.setText('No cards loaded. Open Settings → ChronoCCG and click "Refresh".');
+			this.statusEl.setText('No cards loaded. Open Settings → ChronoVault and click "Refresh".');
 			this.dynamicFiltersEl.empty();
 			this.filterSourceKey = "";
 			return;

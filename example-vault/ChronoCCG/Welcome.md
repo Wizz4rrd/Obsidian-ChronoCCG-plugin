@@ -1,9 +1,9 @@
-# ChronoCCG for Obsidian — demo vault
+# ChronoVault — demo vault
 
 This folder shows everything the plugin can do. Open it in **Reading view** for the full rendering; most things also render in Live Preview.
 
 > [!tip] First run
-> Run **ChronoCCG: Refresh card database** from the command palette (`Cmd/Ctrl+P`) if the cards below show as unknown. The plugin also refreshes on its own every 7 days.
+> Run **ChronoVault: Refresh card database** from the command palette (`Cmd/Ctrl+P`) if the cards below show as unknown. The plugin also refreshes on its own every 7 days.
 
 ## 1. Inline card references
 Write a card name in inline code prefixed with `chrono:` to get a coloured, hoverable reference:

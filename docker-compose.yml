@@ -2,7 +2,7 @@ services:
   # One-shot install: `docker compose run --rm install`
   install:
     build: .
-    image: chronoccg-dev
+    image: chronovault-dev
     working_dir: /workspace/plugin
     volumes:
       - ./plugin:/workspace/plugin
@@ -11,7 +11,7 @@ services:
   # Type-check + production build: `docker compose run --rm build`
   build:
     build: .
-    image: chronoccg-dev
+    image: chronovault-dev
     working_dir: /workspace/plugin
     volumes:
       - ./plugin:/workspace/plugin
@@ -20,7 +20,7 @@ services:
   # Long-running watch mode: `docker compose up dev`
   dev:
     build: .
-    image: chronoccg-dev
+    image: chronovault-dev
     working_dir: /workspace/plugin
     volumes:
       - ./plugin:/workspace/plugin
@@ -29,7 +29,7 @@ services:
   # Drop into a shell: `docker compose run --rm shell`
   shell:
     build: .
-    image: chronoccg-dev
+    image: chronovault-dev
     working_dir: /workspace/plugin
     volumes:
       - ./plugin:/workspace/plugin

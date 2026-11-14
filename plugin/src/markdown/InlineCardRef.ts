@@ -2,7 +2,7 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorState, RangeSetBuilder } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { editorLivePreviewField } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { attachCardPreview, hideCardPopover, showCardPopover } from "../ui/CardPreview";
 import { syndicateClass, UNKNOWN_CARD_HINT } from "../ui/CardTile";
 
@@ -16,7 +16,7 @@ import { syndicateClass, UNKNOWN_CARD_HINT } from "../ui/CardTile";
  */
 export const INLINE_PREFIX = "chrono:";
 
-export function registerInlineCardRefs(plugin: ChronoCCGPlugin): void {
+export function registerInlineCardRefs(plugin: ChronoVaultPlugin): void {
 	plugin.registerMarkdownPostProcessor((el) => {
 		el.querySelectorAll("code").forEach((code) => {
 			if (code.parentElement?.tagName === "PRE") return;
@@ -45,7 +45,7 @@ export function registerInlineCardRefs(plugin: ChronoCCGPlugin): void {
 }
 
 /** Coloured card name for a `chrono:` reference, or a marked-up placeholder when the card is unknown. */
-function renderCardRef(plugin: ChronoCCGPlugin, text: string): HTMLElement {
+function renderCardRef(plugin: ChronoVaultPlugin, text: string): HTMLElement {
 	const card = refToCard(plugin, text);
 	if (!card) {
 		return createSpan({
@@ -68,7 +68,7 @@ function refName(text: string): string {
 	return text.trim().slice(INLINE_PREFIX.length).trim();
 }
 
-function refToCard(plugin: ChronoCCGPlugin, text: string) {
+function refToCard(plugin: ChronoVaultPlugin, text: string) {
 	if (!isCardRef(text)) return undefined;
 	return plugin.cards.resolve(refName(text));
 }
@@ -77,7 +77,7 @@ function refToCard(plugin: ChronoCCGPlugin, text: string) {
 
 class CardRefWidget extends WidgetType {
 	constructor(
-		private plugin: ChronoCCGPlugin,
+		private plugin: ChronoVaultPlugin,
 		private text: string,
 		private cardsVersion: string,
 	) {
@@ -98,7 +98,7 @@ class CardRefWidget extends WidgetType {
 	}
 }
 
-function livePreviewCardRefs(plugin: ChronoCCGPlugin) {
+function livePreviewCardRefs(plugin: ChronoVaultPlugin) {
 	return ViewPlugin.fromClass(
 		class {
 			decorations: DecorationSet;
@@ -121,7 +121,7 @@ function livePreviewCardRefs(plugin: ChronoCCGPlugin) {
 	);
 }
 
-function buildDecorations(plugin: ChronoCCGPlugin, view: EditorView): DecorationSet {
+function buildDecorations(plugin: ChronoVaultPlugin, view: EditorView): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 	const state = view.state;
 	if (!state.field(editorLivePreviewField)) return builder.finish();

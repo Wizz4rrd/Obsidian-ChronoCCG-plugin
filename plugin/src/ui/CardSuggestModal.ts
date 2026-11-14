@@ -1,5 +1,5 @@
 import { App, FuzzyMatch, FuzzySuggestModal } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { Card } from "../data/types";
 import { setCardImage } from "../utils/imageUrl";
 import { cardMetaLine } from "./CardPreview";
@@ -9,7 +9,7 @@ import { syndicateClass } from "./CardTile";
 export class CardSuggestModal extends FuzzySuggestModal<Card> {
 	constructor(
 		app: App,
-		private plugin: ChronoCCGPlugin,
+		private plugin: ChronoVaultPlugin,
 		private onChoose: (card: Card) => void,
 		placeholder = "Type a card name…",
 	) {

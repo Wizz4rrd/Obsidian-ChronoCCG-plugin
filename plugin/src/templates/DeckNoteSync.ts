@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { findFirstDeckBlock } from "../data/deckInput";
 import { DECK_NOTE_TYPE, deckProperties, DeckPropertyKey, staleProperties } from "../data/deckProperties";
 import { Deck } from "../data/types";
@@ -12,13 +12,13 @@ export function deckNoteFrontmatter(app: App, file: TFile): Record<string, unkno
 }
 
 /** Derived properties of a deck note that no longer match `deck`. */
-export function outdatedDeckProperties(plugin: ChronoCCGPlugin, file: TFile, deck: Deck): DeckPropertyKey[] {
+export function outdatedDeckProperties(plugin: ChronoVaultPlugin, file: TFile, deck: Deck): DeckPropertyKey[] {
 	const fm = deckNoteFrontmatter(plugin.app, file);
 	return fm ? staleProperties(fm, deckProperties(deck, plugin.cards)) : [];
 }
 
 /** Bring a deck note's `deck`, `syndicates`, `divers` and `code` in line with `deck`. Returns the properties that changed. */
-export async function updateDeckNoteProperties(plugin: ChronoCCGPlugin, file: TFile, deck: Deck): Promise<DeckPropertyKey[]> {
+export async function updateDeckNoteProperties(plugin: ChronoVaultPlugin, file: TFile, deck: Deck): Promise<DeckPropertyKey[]> {
 	if (!outdatedDeckProperties(plugin, file, deck).length) return [];
 	const expected = deckProperties(deck, plugin.cards);
 	let changed: DeckPropertyKey[] = [];

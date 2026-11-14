@@ -18,7 +18,7 @@ export const SEED_DATABASE: CardDatabase = {
 			health: 2,
 			rarity: "Common",
 			keywords: [],
-			text: "Placeholder card. Run 'ChronoCCG: Refresh card database' to load real data.",
+			text: "Placeholder card. Run 'ChronoVault: Refresh card database' to load real data.",
 		},
 	],
 };

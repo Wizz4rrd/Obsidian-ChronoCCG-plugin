@@ -1,4 +1,4 @@
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { attachCardPreview } from "../ui/CardPreview";
 import { renderCardTile, renderUnknownCardTile } from "../ui/CardTile";
 
@@ -12,7 +12,7 @@ import { renderCardTile, renderUnknownCardTile } from "../ui/CardTile";
  * One card per line (numeric id or name). A line `full` renders large cards
  * with keywords/text.
  */
-export function registerCardCodeBlock(plugin: ChronoCCGPlugin): void {
+export function registerCardCodeBlock(plugin: ChronoVaultPlugin): void {
 	plugin.registerMarkdownCodeBlockProcessor("chrono-card", (source, el) => {
 		el.empty();
 		const lines = source

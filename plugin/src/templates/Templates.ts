@@ -1,5 +1,5 @@
 import { normalizePath, Notice, TFile } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { deckCode, toCodeBlock } from "../data/DeckExport";
 import { allowedSyndicates } from "../data/DeckRules";
 import { MatchFormat, tournamentRounds } from "../data/tournament";
@@ -92,7 +92,7 @@ export interface TemplateVars {
 }
 
 export class NoteTemplates {
-	constructor(private plugin: ChronoCCGPlugin) {}
+	constructor(private plugin: ChronoVaultPlugin) {}
 
 	async render(kind: TemplateKind, vars: TemplateVars): Promise<string> {
 		const template = (await this.readUserTemplate(kind)) ?? DEFAULT_TEMPLATES[kind];
@@ -147,7 +147,7 @@ export class NoteTemplates {
 			await this.plugin.app.workspace.getLeaf("tab").openFile(file);
 			return file;
 		} catch (err) {
-			new Notice(`ChronoCCG: could not create note — ${(err as Error).message}`);
+			new Notice(`ChronoVault: could not create note — ${(err as Error).message}`);
 			return null;
 		}
 	}
@@ -170,7 +170,7 @@ export function sanitizeFileName(name: string): string {
 	return name.replace(/[\\/:*?"<>|#^[\]]/g, "_").replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
-async function uniquePath(plugin: ChronoCCGPlugin, folder: string, base: string): Promise<string> {
+async function uniquePath(plugin: ChronoVaultPlugin, folder: string, base: string): Promise<string> {
 	const prefix = folder && folder !== "/" ? `${folder}/` : "";
 	let candidate = normalizePath(`${prefix}${base}.md`);
 	for (let i = 1; await plugin.app.vault.adapter.exists(candidate); i++) {

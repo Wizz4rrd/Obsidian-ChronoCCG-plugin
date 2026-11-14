@@ -1,5 +1,5 @@
 import { MarkdownPostProcessorContext, MarkdownRenderChild, Notice, parseYaml, setIcon, TFile } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { sortEntries } from "../data/DeckExport";
 import { parseDeckSource, ParsedDeck } from "../data/DeckParser";
 import { deckStats, validateDeck } from "../data/DeckRules";
@@ -25,7 +25,7 @@ import {
  * ```
  * See DeckParser for the accepted formats.
  */
-export function registerDeckCodeBlock(plugin: ChronoCCGPlugin): void {
+export function registerDeckCodeBlock(plugin: ChronoVaultPlugin): void {
 	plugin.registerMarkdownCodeBlockProcessor("chrono-deck", (source, el, ctx) => {
 		el.empty();
 		const deck = parseDeck(plugin, source);
@@ -33,12 +33,12 @@ export function registerDeckCodeBlock(plugin: ChronoCCGPlugin): void {
 	});
 }
 
-export function parseDeck(plugin: ChronoCCGPlugin, source: string): ParsedDeck {
+export function parseDeck(plugin: ChronoVaultPlugin, source: string): ParsedDeck {
 	return parseDeckSource(source, (ref) => plugin.cards.getByName(ref)?.id, parseYaml);
 }
 
 function renderDeck(
-	plugin: ChronoCCGPlugin,
+	plugin: ChronoVaultPlugin,
 	el: HTMLElement,
 	deck: ParsedDeck,
 	ctx: MarkdownPostProcessorContext,
@@ -73,7 +73,7 @@ function renderDeck(
 	});
 
 	if (plugin.cards.size <= 1) {
-		root.createDiv({ cls: "chrono-deck-hint", text: 'Card database not loaded yet — run "ChronoCCG: Refresh card database".' });
+		root.createDiv({ cls: "chrono-deck-hint", text: 'Card database not loaded yet — run "ChronoVault: Refresh card database".' });
 	}
 
 	const stats = deckStats(deck, plugin.cards);
@@ -139,7 +139,7 @@ function renderDeck(
 
 /** Shows the "out of date" bar under the chips while the deck note's properties don't match this block. */
 function flagOutdatedProperties(
-	plugin: ChronoCCGPlugin,
+	plugin: ChronoVaultPlugin,
 	el: HTMLElement,
 	after: HTMLElement,
 	deck: ParsedDeck,
@@ -166,7 +166,7 @@ class OutdatedPropertiesBar extends MarkdownRenderChild {
 
 	constructor(
 		containerEl: HTMLElement,
-		private plugin: ChronoCCGPlugin,
+		private plugin: ChronoVaultPlugin,
 		private after: HTMLElement,
 		private deck: ParsedDeck,
 		private file: TFile,
@@ -224,18 +224,18 @@ class OutdatedPropertiesBar extends MarkdownRenderChild {
 				(changed) => {
 					if (this.bar === bar) this.bar = null;
 					bar.remove();
-					new Notice(changed.length ? `ChronoCCG: updated ${changed.join(", ")}.` : "ChronoCCG: properties are already up to date.");
+					new Notice(changed.length ? `ChronoVault: updated ${changed.join(", ")}.` : "ChronoVault: properties are already up to date.");
 				},
 				(err: Error) => {
 					btn.disabled = false;
-					new Notice(`ChronoCCG: could not update properties — ${err.message}`);
+					new Notice(`ChronoVault: could not update properties — ${err.message}`);
 				},
 			);
 		});
 	}
 }
 
-function tile(plugin: ChronoCCGPlugin, parent: HTMLElement, card: Card, count?: number): void {
+function tile(plugin: ChronoVaultPlugin, parent: HTMLElement, card: Card, count?: number): void {
 	const t = renderCardTile(parent, card, plugin.settings, { size: "thumb", deckCount: count });
 	t.addClass("is-clickable");
 	attachCardPreview(plugin, t, card, { tapToOpen: true });
@@ -247,7 +247,7 @@ function tile(plugin: ChronoCCGPlugin, parent: HTMLElement, card: Card, count?: 
  * to searching the file for a chrono-deck block with the same body.
  */
 async function locateBlock(
-	plugin: ChronoCCGPlugin,
+	plugin: ChronoVaultPlugin,
 	el: HTMLElement,
 	ctx: MarkdownPostProcessorContext,
 	source: string,

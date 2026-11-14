@@ -1,4 +1,4 @@
-/* ChronoCCG plugin styles */
+/* ChronoVault plugin styles */
 
 /* ---- Card tile ---- */
 .chrono-card-tile {
@@ -759,8 +759,8 @@ img.is-missing {
 	overflow: hidden;
 }
 /* The layout follows the pane width, not the device (see the end of this section). */
-.workspace-leaf-content[data-type="chronoccg-deck-builder"] { container-type: inline-size; }
-.workspace-leaf-content[data-type="chronoccg-deck-builder"] .view-content { padding: 0; }
+.workspace-leaf-content[data-type="chronovault-deck-builder"] { container-type: inline-size; }
+.workspace-leaf-content[data-type="chronovault-deck-builder"] .view-content { padding: 0; }
 .chrono-builder-pool {
 	display: flex;
 	flex-direction: column;
@@ -953,7 +953,7 @@ body.is-mobile button.chrono-builder-diver-btn { padding: 2px 10px; }
 	padding: 2px 10px;
 }
 
-/* ---- "ChronoCCG decks" Bases view ---- */
+/* ---- "ChronoVault decks" Bases view ---- */
 .chrono-bases-decks {
 	overflow: auto;
 	height: 100%;

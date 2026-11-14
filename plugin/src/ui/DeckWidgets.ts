@@ -1,5 +1,5 @@
 import { Menu, Notice, setIcon } from "obsidian";
-import type ChronoCCGPlugin from "../../main";
+import type ChronoVaultPlugin from "../../main";
 import { deckCode, toCodeBlock, toJson, toMarkdownTable, toPlainList } from "../data/DeckExport";
 import { CURVE_MAX, DeckIssue, DeckStats, DIVER_COUNT, MAIN_DECK_SIZE } from "../data/DeckRules";
 import { Card, Deck, SYNDICATES } from "../data/types";
@@ -55,9 +55,9 @@ export function renderIssues(parent: HTMLElement, issues: DeckIssue[], extraErro
 async function copy(text: string, what: string): Promise<void> {
 	try {
 		await navigator.clipboard.writeText(text);
-		new Notice(`ChronoCCG: ${what} copied to clipboard.`);
+		new Notice(`ChronoVault: ${what} copied to clipboard.`);
 	} catch (err) {
-		new Notice(`ChronoCCG: could not copy (${(err as Error).message}).`);
+		new Notice(`ChronoVault: could not copy (${(err as Error).message}).`);
 	}
 }
 
@@ -65,12 +65,12 @@ export async function copyDeckCode(deck: Deck): Promise<void> {
 	try {
 		await copy(deckCode(deck), "deck code");
 	} catch (err) {
-		new Notice(`ChronoCCG: cannot build a deck code — ${(err as Error).message}`);
+		new Notice(`ChronoVault: cannot build a deck code — ${(err as Error).message}`);
 	}
 }
 
 /** "Export ▾" menu with every supported format. */
-export function showExportMenu(plugin: ChronoCCGPlugin, deck: Deck, evt: MouseEvent): void {
+export function showExportMenu(plugin: ChronoVaultPlugin, deck: Deck, evt: MouseEvent): void {
 	const menu = new Menu();
 	menu.addItem((i) => i.setTitle("Copy deck code").setIcon("copy").onClick(() => copyDeckCode(deck)));
 	menu.addItem((i) =>
@@ -119,7 +119,7 @@ export function renderUnknownDeckRow(
 }
 
 /** Compact "cost | name | ×n" row used by list views and the deck builder. */
-export function renderDeckRow(plugin: ChronoCCGPlugin, parent: HTMLElement, card: Card, opts: DeckRowOptions = {}): HTMLElement {
+export function renderDeckRow(plugin: ChronoVaultPlugin, parent: HTMLElement, card: Card, opts: DeckRowOptions = {}): HTMLElement {
 	const row = parent.createDiv({ cls: ["chrono-deck-row", syndicateClass(card)] });
 	if (opts.invalid) row.addClass("is-invalid");
 	row.createSpan({ cls: "chrono-row-cost", text: String(card.cost) });
