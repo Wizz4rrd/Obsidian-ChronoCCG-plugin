@@ -64,6 +64,18 @@ The **layers** ribbon icon opens a searchable side panel with filters (cost, syn
 
 ## 6. Note templates
 - **New deck note** → `ChronoCCG/Decks`
-- **New matchup note** → `ChronoCCG/Matchups` (links the deck if you run it from a deck note) — see [[Somnus Revive vs Sungrace aggro]]
 - **New tournament report** → `ChronoCCG/Tournaments` (copies the decklist from the active note) — see [[2026-11-02 Weekly Dive]]
 - **Write default templates to the template folder** gives you editable copies of the templates.
+
+## 7. Match tracker
+Click the **trophy** ribbon icon, or run **Open match tracker**.
+- **Log a game**: pick your deck and the opponent's syndicates (up to two), optionally the archetype, then press **Win** or **Loss**. The opponent is remembered for the next game.
+- Under **Date, patch, opponent's deck, note**: the patch is filled in with the last one you logged. Paste the opponent's deck code to set their syndicates from the Divers, and open it later in the deck builder from the game list (no note is created).
+- **Filters** at the top: period, patch, deck, and **Vs**: pick one syndicate for every game against it, or two for that pair.
+- With all decks: your decks, a **Matchups** grid (your decks × the six syndicates), and your record against each syndicate and each syndicate pair. Click a deck, a row or a cell to narrow down.
+- Pick a deck (or click it) for its own page. The **Win rate per week** chart shows how it's going.
+- Edit or delete a game from the list at the bottom.
+- **Record match result…** logs a game from anywhere, without opening the tracker.
+- Every deck note has a **Results** section (a `chrono-matches` block) with that deck's numbers and a **Log a game** button; see [[Somnus Revive]].
+
+Games are saved in [[Match log]], one row per game, so you can also edit them by hand.

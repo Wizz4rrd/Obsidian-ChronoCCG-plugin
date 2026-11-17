@@ -32,6 +32,8 @@ export interface ChronoSettings {
 	templateFolder: string;
 	/** Log deck builder saves in the deck note's Changelog section. */
 	deckChangelog: boolean;
+	/** Note the match tracker keeps games in ("" = "Match log.md" in the notes folder). */
+	matchLog: string;
 	cardBrowserPlacement: CardBrowserPlacement;
 	/** Height of the card browser's filters, in % of the pane (the rest is the cards). */
 	browserFiltersPercent: number;
@@ -51,13 +53,14 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 	notesFolder: "ChronoCCG",
 	templateFolder: "",
 	deckChangelog: true,
+	matchLog: "",
 	cardBrowserPlacement: "tab",
 	browserFiltersPercent: 42,
 	builderDraft: { deck: emptyDeck() },
 };
 
 /** Keys of {@link ChronoSettings} bound to a declarative control. */
-type ControlKey = "cardBrowserPlacement" | "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog";
+type ControlKey = "cardBrowserPlacement" | "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog" | "matchLog";
 
 export class ChronoSettingsTab extends PluginSettingTab {
 	/** Rows that show something derived from the settings (e.g. the images to download), redrawn when a setting changes. */
@@ -202,6 +205,11 @@ export class ChronoSettingsTab extends PluginSettingTab {
 							'When you save a deck note from the deck builder, add what changed (cards, Divers, name) to the note\'s "Changelog" section. ' +
 							"Saves on the same day are merged into one line.",
 						control: { type: "toggle", key: "deckChangelog" },
+					},
+					{
+						name: "Match log",
+						desc: 'Note where the match tracker saves your games, as a table you can also edit by hand. Empty = "Match log.md" in the notes folder. Renaming this setting doesn\'t move existing games.',
+						control: { type: "text", key: "matchLog", placeholder: "ChronoCCG/Match log.md" },
 					},
 				],
 			},
@@ -363,6 +371,8 @@ export class ChronoSettingsTab extends PluginSettingTab {
 function normalizeControlValue(key: ControlKey, value: unknown): unknown {
 	switch (key) {
 		case "customDataUrl":
+			return typeof value === "string" ? value.trim() : "";
+		case "matchLog":
 			return typeof value === "string" ? value.trim() : "";
 		case "notesFolder":
 		case "templateFolder":

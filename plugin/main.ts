@@ -2,11 +2,14 @@ import { MarkdownView, normalizePath, Notice, Plugin, TFile, Vault, WorkspaceLea
 import { CardRepository } from "./src/data/CardRepository";
 import { DataSync } from "./src/data/DataSync";
 import { SEED_DATABASE } from "./src/data/cards.seed";
-import { Card, Deck } from "./src/data/types";
+import { Card, Deck, Syndicate, SYNDICATES } from "./src/data/types";
+import { decodeDeck } from "./src/data/DeckCodec";
+import { allowedSyndicates } from "./src/data/DeckRules";
 import { CardBrowserPlacement, ChronoSettings, ChronoSettingsTab, DEFAULT_SETTINGS } from "./src/settings/SettingsTab";
 import { registerCardCodeBlock } from "./src/markdown/CardCodeBlock";
+import { registerMatchesCodeBlock } from "./src/markdown/MatchesCodeBlock";
 import { parseDeck, registerDeckCodeBlock } from "./src/markdown/DeckCodeBlock";
-import { findDeckBlockAt, findFirstDeckBlock } from "./src/data/deckInput";
+import { findDeckBlockAt, findFirstDeckBlock, looksLikeDeckCode, unwrapDeckCode } from "./src/data/deckInput";
 import { registerInlineCardRefs } from "./src/markdown/InlineCardRef";
 import { registerDecksBasesView } from "./src/bases/DecksBasesView";
 import { CardBrowserView, VIEW_TYPE_CARD_BROWSER } from "./src/ui/CardBrowserView";
@@ -22,12 +25,19 @@ import { cardImageUrls } from "./src/utils/imageUrl";
 import { deckNoteFrontmatter, firstDeckBlockLink, updateDeckNoteProperties } from "./src/templates/DeckNoteSync";
 import { DEFAULT_TEMPLATES, NoteTemplates, TEMPLATE_FILE_NAMES, TemplateKind, TournamentDeck } from "./src/templates/Templates";
 import { TournamentModal, TournamentOptions } from "./src/ui/TournamentModal";
+import { Match } from "./src/data/matches";
+import { MatchLog } from "./src/tracker/MatchLog";
+import { MatchTrackerView, VIEW_TYPE_MATCH_TRACKER } from "./src/tracker/MatchTrackerView";
+import { RecordMatchModal } from "./src/tracker/RecordMatchModal";
 
 export default class ChronoVaultPlugin extends Plugin {
 	settings!: ChronoSettings;
 	cards = new CardRepository();
 	sync!: DataSync;
 	templates = new NoteTemplates(this);
+	matchLog = new MatchLog(this);
+	/** Opponent / archetype / patch of the last recorded game, preselected for the next one. */
+	lastMatch: Partial<Match> = {};
 
 	async onload(): Promise<void> {
 		const migratedFromRuneterra = await this.loadSettings();
@@ -50,15 +60,18 @@ export default class ChronoVaultPlugin extends Plugin {
 		// Markdown rendering
 		registerCardCodeBlock(this);
 		registerDeckCodeBlock(this);
+		registerMatchesCodeBlock(this);
 		registerInlineCardRefs(this);
 		registerDecksBasesView(this);
 
 		// Views
 		this.registerView(VIEW_TYPE_CARD_BROWSER, (leaf: WorkspaceLeaf) => new CardBrowserView(leaf, this));
 		this.registerView(VIEW_TYPE_DECK_BUILDER, (leaf: WorkspaceLeaf) => new DeckBuilderView(leaf, this));
+		this.registerView(VIEW_TYPE_MATCH_TRACKER, (leaf: WorkspaceLeaf) => new MatchTrackerView(leaf, this));
 
 		this.addRibbonIcon("layers", "ChronoVault: Open card browser", () => this.activateCardBrowser());
 		this.addRibbonIcon("swords", "ChronoVault: Open deck builder", () => this.activateDeckBuilder());
+		this.addRibbonIcon("trophy", "ChronoVault: Open match tracker", () => this.activateMatchTracker());
 
 		this.registerCommands();
 
@@ -191,6 +204,30 @@ export default class ChronoVaultPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "record-match-result",
+			name: "Record match result…",
+			callback: () => {
+				const active = this.app.workspace.getActiveFile();
+				new RecordMatchModal(this, this.deckNotes().find((f) => f === active) ?? null).open();
+			},
+		});
+
+		this.addCommand({
+			id: "open-match-tracker",
+			name: "Open match tracker",
+			callback: () => {
+				const active = this.app.workspace.getActiveFile();
+				void this.activateMatchTracker(this.deckNotes().find((f) => f === active) ?? null);
+			},
+		});
+
+		this.addCommand({
+			id: "open-match-log",
+			name: "Open match log note",
+			callback: () => void this.matchLog.open(),
+		});
+
+		this.addCommand({
 			id: "new-tournament-report",
 			name: "New tournament report",
 			callback: () => {
@@ -241,6 +278,18 @@ export default class ChronoVaultPlugin extends Plugin {
 		return view instanceof DeckBuilderView ? view : null;
 	}
 
+	/** Open the match tracker, with `deck` preselected in its form when given. */
+	async activateMatchTracker(deck: TFile | null = null): Promise<void> {
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(VIEW_TYPE_MATCH_TRACKER)[0];
+		if (!leaf) {
+			leaf = workspace.getLeaf("tab");
+			await leaf.setViewState({ type: VIEW_TYPE_MATCH_TRACKER, active: true });
+		}
+		await workspace.revealLeaf(leaf);
+		if (deck && leaf.view instanceof MatchTrackerView) leaf.view.focusDeck(deck);
+	}
+
 	async openDeckInBuilder(deck: Deck, source?: DeckSourceLink): Promise<void> {
 		const copy: Deck = { name: deck.name, divers: deck.divers.slice(), entries: deck.entries.map((e) => ({ ...e })) };
 		const view = await this.activateDeckBuilder();
@@ -248,6 +297,30 @@ export default class ChronoVaultPlugin extends Plugin {
 		else {
 			this.settings.builderDraft = { deck: copy, source };
 			await this.saveSettings();
+		}
+	}
+
+	/** Open a deck code (e.g. an opponent's deck from the match log) in the deck builder, without creating a note. */
+	openCodeInBuilder(code: string): void {
+		let deck: Deck;
+		try {
+			const d = decodeDeck(unwrapDeckCode(code));
+			deck = { name: d.name, divers: d.divers, entries: d.entries };
+		} catch (err) {
+			return void new Notice(`Invalid deck code: ${(err as Error).message}`);
+		}
+		this.confirmReplaceDraft("Open the opponent's deck", "Open in deck builder", () => void this.openDeckInBuilder(deck));
+	}
+
+	/** The syndicates of a deck code's Divers (in SYNDICATES order), or null when the code can't be read. */
+	codeSyndicates(code: string): Syndicate[] | null {
+		if (!looksLikeDeckCode(code)) return null;
+		try {
+			const d = decodeDeck(unwrapDeckCode(code));
+			const synds = allowedSyndicates({ name: d.name, divers: d.divers, entries: d.entries }, this.cards);
+			return SYNDICATES.filter((s) => synds.has(s));
+		} catch {
+			return null;
 		}
 	}
 
@@ -288,13 +361,17 @@ export default class ChronoVaultPlugin extends Plugin {
 
 	/** "[[Deck note]]" when the active note is a deck note, else "". */
 	/** Deck notes (`type: chrono-deck`) in the notes folder, by name. Only that folder is looked through, not the whole vault. */
-	private deckNotes(): TFile[] {
+	deckNotes(): TFile[] {
 		const folderPath = this.settings.notesFolder.trim();
 		const folder = folderPath ? this.app.vault.getFolderByPath(normalizePath(folderPath)) : this.app.vault.getRoot();
 		const notes: TFile[] = [];
 		if (!folder) return notes;
+		const templates = this.settings.templateFolder.trim() ? `${normalizePath(this.settings.templateFolder.trim())}/` : null;
 		Vault.recurseChildren(folder, (file) => {
-			if (file instanceof TFile && file.extension === "md" && deckNoteFrontmatter(this.app, file)) notes.push(file);
+			if (!(file instanceof TFile) || file.extension !== "md" || (templates && file.path.startsWith(templates))) return;
+			const fm = deckNoteFrontmatter(this.app, file);
+			// The deck note template has the deck type too, with "{{name}}" still in it.
+			if (fm && !JSON.stringify(fm).includes("{{")) notes.push(file);
 		});
 		return notes.sort((a, b) => a.basename.localeCompare(b.basename));
 	}
