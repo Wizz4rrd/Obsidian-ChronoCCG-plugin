@@ -169,6 +169,8 @@ After `make link`, turn on ChronoVault in Settings → Community plugins in the 
 2. Push the tag (e.g. `1.0.1`, no `v`). The Release workflow builds, runs the tests and makes a draft GitHub release with `main.js`, `manifest.json` and `styles.css`.
 3. First release only: submit the repo to [obsidian-releases](https://github.com/obsidianmd/obsidian-releases).
 
+Betas: set the beta version (e.g. `2.1.0-beta.1`) by hand in `plugin/manifest.json` and `plugin/package.json` only, and push the tag. The root `manifest.json` is the one Obsidian reads for updates, so it stays on the last stable version and nobody gets the beta by accident. The release is marked as a pre-release. Testers install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat) ("Add beta plugin", the repo URL, then pick the version), or by copying `main.js`, `manifest.json` and `styles.css` into `.obsidian/plugins/chronovault/`.
+
 ## Use of AI
 
 I used AI coding tools (Claude Code) while building this plugin, the same way I'd use any other dev tool. I decided what the plugin does and how it works, reviewed the code, and tested it in my own vault. If you find something that looks off, please open an issue.
