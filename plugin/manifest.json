@@ -1,7 +1,7 @@
 {
 	"id": "chronovault",
 	"name": "ChronoVault",
-	"version": "2.0.0",
+	"version": "2.1.0-beta.1",
 	"minAppVersion": "1.14.4",
 	"description": "Browse ChronoCCG cards, build and validate decks, and write deck, matchup and tournament notes.",
 	"author": "Wizz4rrd",
