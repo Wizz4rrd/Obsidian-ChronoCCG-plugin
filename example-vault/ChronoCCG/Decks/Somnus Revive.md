@@ -43,9 +43,16 @@ Keep:
 - `chrono:Shattersmith` from the Diver Zone on turn 3 for tempo.
 
 ## Matchups
-| Opponent | Record | Notes |
-| --- | --- | --- |
-| [[Somnus Revive vs Sungrace aggro\|Sungrace aggro]] | 3-2 | Keep cheap removal |
+How to play against each syndicate or deck. Results go in the match tracker.
+
+| Against | Notes |
+| --- | --- |
+| Sungrace aggro | Hard-mulligan for `chrono:Temple Guard Hound` and `chrono:Backhand`. Trade every turn, save `chrono:Not so Fast` for their 4-drops; they run out of gas and `chrono:The Forgotten Tale` wins. Watch for `chrono:Starmote Swarm` and `chrono:Orbital Drop Trooper`. |
+| Silence + Singularity tempo | Keep mana up for Fast actions; don't overcommit into their bounce. |
+
+## Results
+```chrono-matches
+```
 
 ## Changelog
 - 2026-11-02 — created

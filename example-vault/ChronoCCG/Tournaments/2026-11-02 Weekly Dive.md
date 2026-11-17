@@ -19,7 +19,7 @@ AUGVG33NNZ2XGICSMV3GS5TFBNRW63TTORZHKY3UMVSHUAACAEAAFBIBA4GGMAYMAMHAGCADNUBQEAYZ
 ## Rounds
 | Round | Opponent | Their deck | Result | Notes |
 | --: | --- | --- | --- | --- |
-| 1 | Player A | Sungrace aggro | W 2-1 | See [[Somnus Revive vs Sungrace aggro]] |
+| 1 | Player A | Sungrace aggro | W 2-1 | See Matchups in [[Somnus Revive]] |
 | 2 | Player B | Lifeblood midrange | W 2-0 |  |
 | 3 | Player C | Singularity control | W 2-1 | Long games |
 | 4 | Player D | Splintergleam tempo | L 0-2 | Need more early interaction |
