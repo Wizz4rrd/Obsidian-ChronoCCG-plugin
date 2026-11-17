@@ -43,9 +43,15 @@ Keep:
 -
 
 ## Matchups
-| Opponent | Record | Notes |
-| --- | --- | --- |
-|  |  |  |
+How to play against each syndicate or deck. Results go in the match tracker.
+
+| Against | Notes |
+| --- | --- |
+|  |  |
+
+## Results
+\`\`\`chrono-matches
+\`\`\`
 
 ## Changelog
 - {{date}} — created

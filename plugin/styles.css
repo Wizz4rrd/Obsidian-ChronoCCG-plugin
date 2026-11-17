@@ -1012,3 +1012,423 @@ body.is-mobile button.chrono-builder-diver-btn { padding: 2px 10px; }
 	font-size: var(--font-ui-smaller);
 }
 .chrono-tournament-codes-error:empty { display: none; }
+
+/* ---- Match tracker (view, record / edit modal) ---- */
+.chrono-match-empty {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	padding: var(--size-4-2) 0;
+}
+.chrono-match-hint {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
+/* Headline numbers */
+.chrono-match-kpis {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+}
+.chrono-match-kpi {
+	flex: 1 1 5.5rem;
+	padding: var(--size-4-2) var(--size-4-3);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	border-left: 3px solid var(--chrono-kpi, transparent);
+}
+.chrono-match-kpi-value {
+	font-size: 1.4em;
+	font-weight: var(--font-semibold);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-normal);
+}
+.chrono-match-kpi-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+.chrono-match-kpi.is-good { --chrono-kpi: var(--color-green); }
+.chrono-match-kpi.is-ok { --chrono-kpi: color-mix(in srgb, var(--color-green) 50%, var(--text-faint)); }
+.chrono-match-kpi.is-meh { --chrono-kpi: color-mix(in srgb, var(--color-red) 50%, var(--text-faint)); }
+.chrono-match-kpi.is-bad { --chrono-kpi: var(--color-red); }
+
+/* Record tables */
+.chrono-match-table-wrap { overflow-x: auto; }
+.chrono-match-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--font-ui-small);
+}
+.chrono-match-table th {
+	text-align: left;
+	font-weight: var(--font-medium);
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding: 4px 8px;
+	white-space: nowrap;
+}
+.chrono-match-table td {
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	vertical-align: middle;
+}
+.chrono-match-table tbody tr:hover td { background: var(--background-modifier-hover); }
+.chrono-match-num {
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+.chrono-match-rate {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 5.5rem;
+}
+.chrono-match-rate-bar {
+	flex: 1;
+	height: 6px;
+	border-radius: 3px;
+	background: var(--background-modifier-border);
+	overflow: hidden;
+}
+.chrono-match-rate-fill {
+	height: 100%;
+	width: var(--chrono-rate, 0%);
+	border-radius: 3px;
+	background: var(--text-faint);
+}
+.chrono-match-rate-fill.is-good { background: var(--color-green); }
+.chrono-match-rate-fill.is-ok { background: color-mix(in srgb, var(--color-green) 55%, var(--text-faint)); }
+.chrono-match-rate-fill.is-meh { background: color-mix(in srgb, var(--color-red) 55%, var(--text-faint)); }
+.chrono-match-rate-fill.is-bad { background: var(--color-red); }
+.chrono-match-rate-text {
+	width: 2.6em;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-normal);
+}
+
+/* Opponent pairing, result chip, game rows */
+.chrono-match-pairing {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+}
+.chrono-match-pairing .chrono-synd-icon { width: 1.3em; height: 1.3em; }
+.chrono-match-chip {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.6em;
+	height: 1.6em;
+	border-radius: var(--radius-s);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-bold);
+	color: var(--text-normal);
+	flex: 0 0 auto;
+}
+.chrono-match-chip.is-win { background: color-mix(in srgb, var(--color-green) 30%, transparent); }
+.chrono-match-chip.is-loss { background: color-mix(in srgb, var(--color-red) 30%, transparent); }
+.chrono-match-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-top: var(--size-4-2);
+}
+.chrono-match-game {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 6px;
+	border-radius: var(--radius-s);
+	font-size: var(--font-ui-small);
+}
+.chrono-match-game:hover { background: var(--background-modifier-hover); }
+.chrono-match-date {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+.chrono-match-deck { font-weight: var(--font-medium); }
+.chrono-match-vs { color: var(--text-faint); }
+.chrono-match-tag {
+	padding: 0 6px;
+	border-radius: 999px;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+.chrono-match-note {
+	color: var(--text-muted);
+	font-style: italic;
+}
+.chrono-match-actions {
+	display: flex;
+	gap: 2px;
+	margin-left: auto;
+	opacity: 0;
+}
+.chrono-match-game:hover .chrono-match-actions,
+.chrono-match-actions:focus-within { opacity: 1; }
+@media (hover: none) {
+	.chrono-match-actions { opacity: 1; }
+}
+
+/* Entry form (modal and tracker) */
+.chrono-match-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+}
+.chrono-match-row {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--size-4-3);
+}
+.chrono-match-label {
+	flex: 0 0 5.5rem;
+	padding-top: 5px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+.chrono-match-field {
+	flex: 1;
+	min-width: 0;
+}
+.chrono-match-field select { max-width: 100%; }
+.chrono-match-input { width: 100%; }
+.chrono-match-synds {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.chrono-match-synds .chrono-syndicate-btn {
+	display: inline-flex;
+	align-items: center;
+}
+.chrono-match-synds .chrono-syndicate-btn.is-active {
+	color: var(--text-normal);
+	border-color: var(--chrono-synd);
+	background: color-mix(in srgb, var(--chrono-synd) 16%, var(--background-primary));
+}
+.chrono-match-more summary {
+	cursor: pointer;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin-bottom: var(--size-4-2);
+}
+.chrono-match-more .chrono-match-row { margin-bottom: var(--size-4-2); }
+.chrono-match-results {
+	display: flex;
+	gap: var(--size-4-2);
+}
+.chrono-match-result {
+	flex: 2;
+	height: 2.6em;
+	font-size: var(--font-ui-medium);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+.chrono-match-result.is-win { background: color-mix(in srgb, var(--color-green) 28%, var(--interactive-normal)); }
+.chrono-match-result.is-loss { background: color-mix(in srgb, var(--color-red) 28%, var(--interactive-normal)); }
+.chrono-match-result.is-win:hover { background: color-mix(in srgb, var(--color-green) 40%, var(--interactive-normal)); }
+.chrono-match-result.is-current { box-shadow: 0 0 0 2px var(--text-normal); }
+.chrono-match-result.is-loss:hover { background: color-mix(in srgb, var(--color-red) 40%, var(--interactive-normal)); }
+.chrono-match-modal { width: min(36rem, 92vw); }
+
+/* Match tracker view */
+.chrono-tracker { padding: 0; }
+.chrono-tracker-body {
+	height: 100%;
+	overflow-y: auto;
+	padding: var(--size-4-4) var(--size-4-6);
+}
+.chrono-tracker-top {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-3);
+	margin-bottom: var(--size-4-4);
+}
+.chrono-tracker-top h2 { margin: 0; }
+.chrono-tracker-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+}
+.chrono-tracker-layout {
+	display: grid;
+	grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+	gap: var(--size-4-4);
+	align-items: start;
+}
+/* One column on a narrow pane (phone, tablet in portrait, split view): the form then scrolls away instead of covering the stats. */
+@container chrono-tracker (max-width: 760px) {
+	.chrono-tracker-layout { grid-template-columns: 1fr; }
+	.chrono-tracker .chrono-tracker-entry { position: static; }
+}
+.chrono-tracker { container: chrono-tracker / inline-size; }
+.chrono-tracker-entry {
+	position: sticky;
+	top: 0;
+}
+.chrono-tracker-entry .chrono-match-label { flex-basis: 4.5rem; }
+.chrono-tracker-main {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-4);
+	min-width: 0;
+}
+.chrono-tracker-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-3) var(--size-4-4);
+	background: var(--background-primary);
+	min-width: 0;
+	container: chrono-card / inline-size;
+}
+/* A narrow card drops the Games column: the record (W–L) already adds up to it. */
+@container chrono-card (max-width: 21rem) {
+	.chrono-match-col-games { display: none; }
+}
+.chrono-tracker-card h3 {
+	margin: 0 0 var(--size-4-3);
+	font-size: var(--font-ui-medium);
+}
+.chrono-tracker-split {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+	gap: var(--size-4-4);
+}
+.chrono-tracker-deck-synds { margin-left: 6px; }
+.chrono-tracker-matrix-wrap { overflow-x: auto; }
+.chrono-tracker-matrix {
+	border-collapse: separate;
+	border-spacing: 2px;
+	font-size: var(--font-ui-small);
+}
+.chrono-tracker-matrix th {
+	font-weight: var(--font-medium);
+	color: var(--text-muted);
+	padding: 4px 8px;
+	white-space: nowrap;
+}
+.chrono-tracker-matrix tbody th {
+	text-align: left;
+	color: var(--text-normal);
+}
+.chrono-tracker-cell {
+	min-width: 4.2rem;
+	padding: 4px 6px;
+	text-align: center;
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	font-variant-numeric: tabular-nums;
+	background: var(--chrono-cell, var(--background-secondary));
+}
+.chrono-tracker-cell.is-empty { color: var(--text-faint); background: transparent; }
+.chrono-tracker-cell.is-even { --chrono-cell: var(--background-modifier-border); }
+.chrono-tracker-cell.is-ahead { --chrono-cell: color-mix(in srgb, var(--color-green) var(--chrono-lean), var(--background-primary)); }
+.chrono-tracker-cell.is-behind { --chrono-cell: color-mix(in srgb, var(--color-red) var(--chrono-lean), var(--background-primary)); }
+.chrono-tracker-cell-rate { font-weight: var(--font-semibold); }
+.chrono-tracker-cell-record {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+.chrono-match-form-strip {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 2px;
+}
+.chrono-match-form-strip .chrono-match-chip {
+	width: 1.35em;
+	height: 1.35em;
+	font-size: 0.7em;
+}
+.chrono-tracker-strip {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-3);
+}
+.chrono-tracker-card-desc { margin: calc(-1 * var(--size-4-2)) 0 var(--size-4-2); }
+.chrono-tracker-filter-row { cursor: pointer; }
+.chrono-tracker-filter-row:hover .chrono-match-deck,
+.chrono-tracker-filter-row:hover td:first-child { text-decoration: underline; }
+/* No games: muted. Fewer than 3 games: faded, the win rate says little yet. */
+.chrono-match-table tr.is-empty td { color: var(--text-faint); }
+.chrono-match-table tr.is-small td,
+.chrono-tracker-cell.is-small { opacity: 0.55; }
+.chrono-tracker-matrix-total th,
+.chrono-tracker-matrix-total td { border-top: 1px solid var(--background-modifier-border); }
+.chrono-tracker-matrix-total th { font-weight: var(--font-semibold); }
+.chrono-tracker-vs {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+.chrono-tracker-vs .chrono-syndicate-btn { padding: 4px 6px; }
+.chrono-tracker-vs .chrono-syndicate-btn.is-active {
+	border-color: var(--chrono-synd);
+	background: color-mix(in srgb, var(--chrono-synd) 22%, var(--background-primary));
+}
+.chrono-tracker-deck-head {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+.chrono-tracker-deck-head h3 { margin: 0; }
+
+/* Win rate per week */
+.chrono-match-chart { margin-top: var(--size-4-3); }
+.chrono-match-chart svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: 11rem;
+}
+.chrono-match-chart-grid { stroke: var(--background-modifier-border); stroke-width: 1; }
+.chrono-match-chart-mid { stroke: var(--text-faint); stroke-width: 1; stroke-dasharray: 4 4; }
+.chrono-match-chart-line {
+	fill: none;
+	stroke: var(--interactive-accent);
+	stroke-width: 2;
+	stroke-linejoin: round;
+}
+.chrono-match-chart-dot {
+	fill: var(--interactive-accent);
+	stroke: var(--background-primary);
+	stroke-width: 2;
+}
+.chrono-match-chart-dot.is-small { fill: var(--background-primary); stroke: var(--interactive-accent); }
+.chrono-match-chart-label { fill: var(--text-muted); font-size: 12px; }
+.chrono-tracker-cell:not(.is-empty) { cursor: pointer; }
+.chrono-tracker-cell:not(.is-empty):hover { outline: 2px solid var(--background-modifier-border-hover); }
+.chrono-tracker-warning {
+	margin-bottom: var(--size-4-4);
+	padding: var(--size-4-2) var(--size-4-3);
+	border-radius: var(--radius-s);
+	background: color-mix(in srgb, var(--color-orange) 14%, transparent);
+	font-size: var(--font-ui-small);
+}
+.chrono-tracker-warning a { cursor: pointer; }
+.chrono-tracker-more { margin-top: var(--size-4-3); }
+
+/* ```chrono-matches``` block: a deck's results in its note */
+.chrono-matches-block {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+	padding: var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+.chrono-matches-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+}
+.chrono-matches-bar button { gap: 4px; }
+.chrono-matches-bar button svg { width: 14px; height: 14px; vertical-align: -2px; }
+.chrono-matches-block .chrono-tracker-strip { margin-top: 0; }
