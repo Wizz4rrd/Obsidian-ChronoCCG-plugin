@@ -15,6 +15,13 @@ export const CACHED_IMAGE_WIDTH = 400;
 export const ORIGINAL_IMAGE_KB = 1300;
 export const CACHED_IMAGE_KB = 35;
 const WEBP_QUALITY = 0.85;
+/**
+ * Formats saved images can have: WebP where the engine can encode it, PNG
+ * otherwise (iOS). Every device shows both, so a device uses an image another
+ * one saved in its format; WebP first, it's the smaller one (about 8× here).
+ * A device that can encode WebP converts the PNGs it finds.
+ */
+const FORMATS = ["webp", "png"];
 /** Start loading an image this far before it scrolls into view. */
 const PRELOAD_MARGIN = "400px";
 
@@ -87,7 +94,7 @@ export class ImageCache {
 			img.src = url;
 			return;
 		}
-		const name = this.fileName(url);
+		const name = this.savedName(url) ?? this.fileName(url);
 		this.sources.set(name, url);
 		this.track(img.win);
 		if (this.onDisk.has(name)) {
@@ -114,7 +121,7 @@ export class ImageCache {
 	/** How many of `urls` are saved. */
 	async savedCount(urls: string[]): Promise<number> {
 		await this.loadIndex();
-		return new Set(urls.filter((u) => this.onDisk.has(this.fileName(u)))).size;
+		return new Set(urls.filter((u) => this.savedName(u))).size;
 	}
 
 	/** Progress of the running (or last) {@link downloadAll}. */
@@ -132,7 +139,7 @@ export class ImageCache {
 	async downloadAll(urls: string[]): Promise<DownloadProgress> {
 		if (this.job?.progress.running) return { ...this.job.progress };
 		await this.loadIndex();
-		const todo = Array.from(new Set(urls)).filter((u) => u.startsWith("https://") && !this.onDisk.has(this.fileName(u)));
+		const todo = Array.from(new Set(urls)).filter((u) => u.startsWith("https://") && !this.savedName(u));
 		const job = { progress: { done: 0, total: todo.length, failed: 0, running: true, cancelled: false }, controller: new AbortController() };
 		this.job = job;
 		const emit = () => this.downloadListeners.forEach((l) => l({ ...job.progress }));
@@ -307,6 +314,9 @@ export class ImageCache {
 			const { files } = await adapter.list(dir);
 			if (generation !== this.generation) return;
 			for (const f of files) this.onDisk.add(f.slice(f.lastIndexOf("/") + 1));
+			await this.dropDuplicates(dir);
+			// In the background: the images show from the PNGs meanwhile.
+			void this.convertToWebp(dir, generation);
 		} catch {
 			// Each image is checked again before it is downloaded.
 		}
@@ -316,11 +326,61 @@ export class ImageCache {
 		return this.plugin ? this.folder : null;
 	}
 
-	/** One flat file per URL, e.g. `cdn.playchrono.com_latest_en_us_img_cards_full_set_1_3-w400.webp`. */
+	/** One flat file per URL, e.g. `cdn.playchrono.com_latest_en_us_img_cards_full_set_1_3-w400.webp`, in this device's format. */
 	private fileName(url: string): string {
+		return `${this.baseName(url)}.${this.format().ext}`;
+	}
+
+	private baseName(url: string): string {
 		const u = new URL(url);
 		const name = `${u.hostname}${u.pathname.replace(/\.[a-z0-9]+$/i, "")}`.replace(/[^a-z0-9.-]+/gi, "_").slice(-140);
-		return `${name}-w${CACHED_IMAGE_WIDTH}.${this.format().ext}`;
+		return `${name}-w${CACHED_IMAGE_WIDTH}`;
+	}
+
+	/** The saved file of `url` in any format (see FORMATS), or null. */
+	private savedName(url: string): string | null {
+		const base = this.baseName(url);
+		for (const ext of FORMATS) if (this.onDisk.has(`${base}.${ext}`)) return `${base}.${ext}`;
+		return null;
+	}
+
+	/** Re-encode the PNGs (saved by iOS) as WebP, when this device can, and delete them. */
+	private async convertToWebp(dir: string, generation: number): Promise<void> {
+		const adapter = this.plugin?.app.vault.adapter;
+		if (!adapter || this.format().ext !== "webp") return;
+		const pngs = Array.from(this.onDisk).filter((n) => n.endsWith(".png"));
+		for (const png of pngs) {
+			if (generation !== this.generation) return;
+			const webp = `${png.slice(0, -".png".length)}.webp`;
+			try {
+				const data = await this.limit(async () => this.shrink(await adapter.readBinary(`${dir}/${png}`), "image/png"));
+				if (generation !== this.generation) return;
+				await adapter.writeBinary(`${dir}/${webp}`, data);
+				this.onDisk.add(webp);
+				await adapter.remove(`${dir}/${png}`);
+				this.onDisk.delete(png);
+			} catch {
+				// Kept as PNG: it still shows.
+			}
+		}
+	}
+
+	/** An image saved in both formats (by two devices) keeps only the first of FORMATS. */
+	private async dropDuplicates(dir: string): Promise<void> {
+		const adapter = this.plugin?.app.vault.adapter;
+		if (!adapter) return;
+		for (const name of Array.from(this.onDisk)) {
+			const dot = name.lastIndexOf(".");
+			const ext = name.slice(dot + 1);
+			const keep = FORMATS.find((f) => this.onDisk.has(`${name.slice(0, dot)}.${f}`));
+			if (!keep || keep === ext || !FORMATS.includes(ext)) continue;
+			try {
+				await adapter.remove(`${dir}/${name}`);
+				this.onDisk.delete(name);
+			} catch {
+				// Kept: it's only used when the other one is gone.
+			}
+		}
 	}
 
 	private resourceUrl(name: string): string {
@@ -380,9 +440,7 @@ export class ImageCache {
 	/** File name of the cached copy, downloading it when it isn't on disk. */
 	private async locate(url: string): Promise<string | null> {
 		await this.loadIndex();
-		const name = this.fileName(url);
-		if (this.onDisk.has(name)) return name;
-		return this.limit(() => this.download(url));
+		return this.savedName(url) ?? this.limit(() => this.download(url));
 	}
 
 	private async download(url: string): Promise<string | null> {
