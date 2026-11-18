@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decodeDeck, encodeDeck } from "../src/data/DeckCodec";
 import { parseDeckSource } from "../src/data/DeckParser";
-import { deckStats, isDiverEligible, validateDeck } from "../src/data/DeckRules";
+import { deckStats, exceededLimits, isDiverEligible, validateDeck } from "../src/data/DeckRules";
 import { toCodeBlock } from "../src/data/DeckExport";
 import { findDeckBlockAt } from "../src/data/deckInput";
 import { normalizeOfficial } from "../src/data/officialCards";
@@ -181,6 +181,16 @@ test("validates deck rules", () => {
 	assert.match(msgs, /max 3/);
 	assert.match(msgs, /cannot also be in the main deck/);
 	assert.match(msgs, /6\/40/);
+});
+
+test("lists the limits a deck goes past, for the deck builder's save", () => {
+	const lk = lookup([card(1, { name: "Hush Now" }), ...Array.from({ length: 14 }, (_, i) => card(10 + i))]);
+	const full: Deck = { name: "", divers: [], entries: Array.from({ length: 13 }, (_, i) => ({ id: 10 + i, count: 3 })) };
+	assert.deepEqual(exceededLimits(full, lk), []);
+	// Incomplete is fine: only going past a limit counts.
+	assert.deepEqual(exceededLimits({ name: "", divers: [], entries: [] }, lk), []);
+	const over: Deck = { ...full, entries: [...full.entries, { id: 1, count: 4 }] };
+	assert.deepEqual(exceededLimits(over, lk), ["The main deck has 43 cards (max 40).", "Hush Now: 4 copies (max 3)."]);
 });
 
 test("code block export parses back to the same deck", () => {

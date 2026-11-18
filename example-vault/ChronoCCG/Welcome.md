@@ -58,6 +58,7 @@ Click the **swords** ribbon icon, or run **Open deck builder**.
 - "Only cards playable with my Divers" filters the pool to the Divers' syndicates.
 - **Save** writes back to the note the deck came from, or creates a new deck note under `ChronoCCG/Decks`.
 - **Import deck code**, **Copy deck code** and **Export** are in the header.
+- You can go past 40 cards or 3 copies while building (the deck shows as not legal). Saving a deck like that asks first.
 
 ## 5. Card browser
 The **layers** ribbon icon opens a searchable side panel with filters (cost, syndicate, spell speed, rarity, type, keyword, set). Click a card to insert it, add it to the builder, or see details.
