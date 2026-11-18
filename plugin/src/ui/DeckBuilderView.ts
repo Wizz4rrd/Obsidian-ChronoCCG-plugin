@@ -3,11 +3,12 @@ import type ChronoVaultPlugin from "../../main";
 import { poolCards, poolCardState, poolScopeKey } from "../data/BuilderPool";
 import { decodeDeck } from "../data/DeckCodec";
 import { sortEntries, toCodeBlock } from "../data/DeckExport";
-import { deckStats, DIVER_COUNT, isDiverEligible, MAIN_DECK_SIZE, MAX_COPIES, validateDeck } from "../data/DeckRules";
+import { deckStats, DIVER_COUNT, exceededLimits, isDiverEligible, MAIN_DECK_SIZE, MAX_COPIES, validateDeck } from "../data/DeckRules";
 import { logDeckChange } from "../data/deckChangelog";
 import { findFirstDeckBlock, locateDeckBlock, unwrapDeckCode } from "../data/deckInput";
 import { Card, Deck, Syndicate, SYNDICATES } from "../data/types";
 import { attachCardPreview, CardDetailModal } from "./CardPreview";
+import { ConfirmModal } from "./ConfirmModal";
 import { renderCardTile } from "./CardTile";
 import { copyDeckCode, renderCurve, renderDeckChips, renderDeckRow, renderIssues, renderUnknownDeckRow, showExportMenu } from "./DeckWidgets";
 import { renderCostChips } from "./CostChips";
@@ -140,11 +141,8 @@ export class DeckBuilderView extends ItemView {
 			this.deck.entries = this.deck.entries.filter((e) => e.id !== card.id);
 		} else {
 			if (this.deck.divers.includes(card.id)) return void new Notice(`${card.name} is one of your Divers.`);
+			// More than 3 copies or 40 cards is allowed while building: the deck shows as not legal, and saving asks first.
 			const entry = this.deck.entries.find((e) => e.id === card.id);
-			if ((entry?.count ?? 0) >= MAX_COPIES) return void new Notice(`Max ${MAX_COPIES} copies of ${card.name}.`);
-			if (deckStats(this.deck, this.plugin.cards).mainCount >= MAIN_DECK_SIZE) {
-				return void new Notice(`Main deck is full (${MAIN_DECK_SIZE}).`);
-			}
 			if (entry) entry.count++;
 			else this.deck.entries.push({ id: card.id, count: 1 });
 		}
@@ -403,8 +401,20 @@ export class DeckBuilderView extends ItemView {
 		}).open();
 	}
 
-	/** Write the deck back to the block it came from, or to a new deck note. */
+	/** Write the deck back to the block it came from, or to a new deck note; asks first when the deck is over a limit. */
 	async save(): Promise<void> {
+		const exceeded = exceededLimits(this.deck, this.plugin.cards);
+		if (!exceeded.length) return this.write();
+		new ConfirmModal(this.app, {
+			title: "Save a deck the game won't accept?",
+			message: `${exceeded.join(" ")} You can save it anyway, e.g. to trim it later.`,
+			cta: "Save anyway",
+			warning: true,
+			onConfirm: () => void this.write(),
+		}).open();
+	}
+
+	private async write(): Promise<void> {
 		const block = toCodeBlock(this.deck, this.plugin.cards).replace(/\n$/, "").split("\n");
 		const src = this.draft.source;
 		if (src) {
