@@ -177,10 +177,11 @@ function byCostThenName(a: Card, b: Card): number {
 }
 
 /**
- * Almost every base Agent has an "Immortalize: <condition>" line, so that
- * label would make "immortalize" find them all. It's left out (the condition
- * stays searchable): the word then finds the immortalized sides and the cards
- * whose effect immortalizes ("When I Immortalize", "Immortalize your weakest…").
+ * Searching "immortalize" finds the cards whose effect is about it ("When I
+ * Immortalize", "Revive an Immortalized ally"), not every Agent:
+ * - almost every base Agent has an "Immortalize: <condition>" line, so that
+ *   label is left out (the condition stays searchable);
+ * - the immortalized sides are searched as "Agent" (the Type filter still finds them).
  */
 const IMMORTALIZE_LABEL = /(^|[.\n]\s*)immortali[sz]e:/gi;
 
@@ -188,7 +189,7 @@ function searchHaystack(c: Card): string {
 	const pieces: string[] = [
 		c.name,
 		c.text.replace(IMMORTALIZE_LABEL, "$1"),
-		c.type,
+		isImmortalized(c) ? "Agent" : c.type,
 		c.rarity,
 		c.set ?? "",
 		c.flavor ?? "",
