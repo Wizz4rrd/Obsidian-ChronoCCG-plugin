@@ -11,6 +11,9 @@ export type CardImageStyle = "game" | "full";
 
 export type DeckView = "grid" | "list";
 
+/** Where saved card images go: a "ChronoVault" folder in the attachment folder, or the plugin folder. */
+export type ImageFolder = "vault" | "plugin";
+
 /** The card browser as a page (tab in the main area) or in the right sidebar. */
 export type CardBrowserPlacement = "tab" | "sidebar";
 
@@ -20,8 +23,11 @@ export interface ChronoSettings {
 	/** Prefer framed card art (stats on image) or full-bleed illustration. */
 	cardImageStyle: CardImageStyle;
 	autoRefreshDays: number;
-	/** Keep downloaded card images in the plugin folder. */
+	/** Keep downloaded card images (see `imageFolder`). */
 	cacheImages: boolean;
+	imageFolder: ImageFolder;
+	/** The folder the images were last saved in, to move them when it changes ("" = the plugin folder, before `imageFolder` existed). */
+	imageCacheDir: string;
 	lastSyncIso: string | null;
 	/** Default rendering of ```chrono-deck blocks. */
 	deckView: DeckView;
@@ -49,6 +55,8 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 	cardImageStyle: "game",
 	autoRefreshDays: 7,
 	cacheImages: true,
+	imageFolder: "vault",
+	imageCacheDir: "",
 	lastSyncIso: null,
 	deckView: "grid",
 	hoverPreviews: true,
@@ -63,7 +71,7 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 };
 
 /** Keys of {@link ChronoSettings} bound to a declarative control. */
-type ControlKey = "cardBrowserPlacement" | "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog" | "matchLog" | "matchLogDeckAlias";
+type ControlKey = "cardBrowserPlacement" | "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog" | "matchLog" | "matchLogDeckAlias" | "imageFolder";
 
 export class ChronoSettingsTab extends PluginSettingTab {
 	/** Rows that show something derived from the settings (e.g. the images to download), redrawn when a setting changes. */
@@ -82,6 +90,8 @@ export class ChronoSettingsTab extends PluginSettingTab {
 		s[key as ControlKey] = normalizeControlValue(key as ControlKey, value);
 		await this.plugin.saveSettings();
 		if (key === "cardBrowserPlacement") await this.plugin.setCardBrowserPlacement(value as CardBrowserPlacement);
+		// The images move with the setting (and with the notes folder, for a relative attachment folder).
+		if (key === "imageFolder" || key === "notesFolder") await imageCache.relocate();
 		// "Custom data URL" is only shown for the custom source; each image style has its own images to download.
 		this.refreshDomState();
 		this.refreshers.forEach((refresh) => refresh());
@@ -123,10 +133,18 @@ export class ChronoSettingsTab extends PluginSettingTab {
 					{
 						name: "Save card images",
 						desc:
-							`Download each card image once and keep a ${CACHED_IMAGE_WIDTH}px copy in the plugin folder, so cards also show offline. ` +
+							`Download each card image once and keep a ${CACHED_IMAGE_WIDTH}px copy, so cards also show offline. ` +
 							"When off, the full-size images (about 1.3 MB each) are loaded every time, and the saved ones are deleted.",
 						aliases: ["cache", "offline"],
 						render: (setting) => this.renderSaveImages(setting),
+					},
+					{
+						name: "Card image folder",
+						desc:
+							'Attachments folder: a "ChronoVault" folder in your attachment folder (Settings → Files and links), so the images sync with the vault and devices with their own config folder share them. ' +
+							"Plugin folder: in the plugin's own folder. Changing this moves the saved images.",
+						aliases: ["attachments", "storage"],
+						control: { type: "dropdown", key: "imageFolder", options: { vault: "Attachments folder", plugin: "Plugin folder" } },
 					},
 					{
 						name: "Download all card images",

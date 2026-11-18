@@ -1,3 +1,6 @@
 .DS_Store
 .obsidian/
 
+
+# Card images the plugin saves in the example vault (the "Card image folder" setting)
+example-vault/ChronoVault/
