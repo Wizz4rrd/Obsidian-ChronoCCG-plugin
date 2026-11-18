@@ -73,3 +73,20 @@ test("search lists cards cheapest first, then by name, before applying the limit
 		[4, 3],
 	);
 });
+
+test("searching immortalize skips the Immortalize line every base Agent has", () => {
+	const cards = repo([
+		card(1, { name: "Base", text: "Enter: Deal 4 to me.\nImmortalize: I see The One True Timeline." }),
+		card(2, { name: "Flipped", type: "Immortalized Agent", text: "Overpower." }),
+		card(3, { name: "Trigger", text: "Blitz. When I Immortalize, grant me +1/+1." }),
+		card(4, { name: "Spell", type: "Action", text: "Immortalize your weakest non-Immortalized ally." }),
+	]);
+	const ids = (text: string) => cards.search({ text }).map((c) => c.id);
+	// Cheapest first, then by name: Flipped, Spell, Trigger.
+	assert.deepEqual(ids("immortalize"), [2, 4, 3]);
+	assert.deepEqual(ids("immortalized"), [2, 4]);
+	assert.deepEqual(ids("immortalise"), ids("immortalize"));
+	assert.deepEqual(ids("immortal"), [2, 4, 3]);
+	// The condition itself is still found.
+	assert.deepEqual(ids("timeline"), [1]);
+});
