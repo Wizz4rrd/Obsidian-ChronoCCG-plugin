@@ -2,6 +2,8 @@
 
 ChronoVault is an Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wanted to keep my decks and tournament reports in my vault, with real cards in them instead of plain text, so I made this.
 
+![The deck builder](docs/screenshots/deck-builder.png)
+
 If you cloned the repo, you can try it in the example vault: open `example-vault/` in Obsidian and start with `ChronoCCG/Welcome.md`.
 
 ## What it does
@@ -17,6 +19,13 @@ If you cloned the repo, you can try it in the example vault: open `example-vault
 Deck codes work both ways with the game and with deck sites that use the same format.
 
 If a card can't be found (typo, or a card that isn't in the data yet), it shows up as a grey "?" card instead of disappearing.
+
+| | |
+| --- | --- |
+| ![A deck block in a deck note](docs/screenshots/deck-block.png) | ![The same deck block with card images](docs/screenshots/deck-block-cards.png) |
+| A `chrono-deck` block in a deck note | The same block with card images |
+| ![Hover preview of an inline card reference](docs/screenshots/card-preview.png) | ![The card browser](docs/screenshots/card-browser.png) |
+| Hover preview of an Agent that immortalizes | The card browser |
 
 ### Syntax
 
@@ -79,6 +88,8 @@ Saving a deck note from the deck builder also adds a line to its "Changelog" sec
 
 ### Match tracker
 
+![The match tracker](docs/screenshots/match-tracker.png)
+
 Games go in one note, `ChronoCCG/Match log.md` by default (you can change it in the settings), as a table with a row per game: date, patch, deck (a link to the deck note), result (W or L), the opponent's syndicates, archetype, the opponent's deck code and a note. You can edit it by hand, and columns are found by their name, so you can reorder them or add your own.
 
 In the tracker:
@@ -88,9 +99,13 @@ In the tracker:
 - The archetype is free text. It suggests the archetypes you used before, and typing one in another case ("aggro") keeps the spelling you used first, so it isn't counted twice.
 - The patch is filled in with the last one you logged. Pasting the opponent's deck code sets their syndicates from the Divers, and the game list has a button to open it in the deck builder (no note is created).
 
+![The breakdowns and the game list](docs/screenshots/match-tracker-games.png)
+
 Colours in the matchup grid: red is a win rate under 45%, grey is 45–55% (about even), green is over 55%. The further from 50%, the stronger the colour. A faded cell (or a faded row in the tables) has fewer than 3 games, so the win rate doesn't say much yet. The win-rate bars go red under 40%, light red 40–50%, light green 50–60% and green from 60%.
 
 A `chrono-matches` block (with nothing in it) shows a deck's results in its note: win rate, record, last 10 games and the record against each syndicate pair (most played first), with buttons to log a game and open the tracker. New deck notes have one in their "Results" section. Anywhere else (e.g. the match log) it shows every game.
+
+![A deck note with its Results section](docs/screenshots/deck-note.png)
 
 ### Deck notes in a base
 
