@@ -1,8 +1,11 @@
-import { requestUrl } from "obsidian";
+import { normalizePath, requestUrl } from "obsidian";
 import type ChronoVaultPlugin from "../../main";
 import { fitWidth, pngSize } from "./imageSize";
 
+/** The folder in the plugin folder ("Card image folder": plugin folder). */
 const CACHE_DIR = "image-cache";
+/** The folder in the vault's attachment folder ("Card image folder": attachments folder). */
+const VAULT_DIR = "ChronoVault";
 const MAX_PARALLEL_DOWNLOADS = 6;
 /** "Download all" leaves the other download slots to the images on screen. */
 const DOWNLOAD_ALL_PARALLEL = 4;
@@ -24,13 +27,17 @@ export interface DownloadProgress {
 }
 
 /**
- * Keeps a shrunk copy of every card image in the plugin folder, so each image is
+ * Keeps a shrunk copy of every card image (in the attachment folder or the
+ * plugin folder, see the "Card image folder" setting), so each image is
  * downloaded once and cards still show offline. An image that isn't cached
  * yet is downloaded (when it comes near the viewport) and then shown from disk,
  * so it is never fetched twice.
  */
 export class ImageCache {
 	private plugin: ChronoVaultPlugin | null = null;
+	/** The folder the images are saved in, once {@link relocate} has run. */
+	private folder: string | null = null;
+	private ready: Promise<void> = Promise.resolve();
 	/** File names in the cache folder: read once, then kept up to date. */
 	private onDisk = new Set<string>();
 	private index: Promise<void> | null = null;
@@ -59,7 +66,18 @@ export class ImageCache {
 	init(plugin: ChronoVaultPlugin): void {
 		this.plugin = plugin;
 		this.reset();
+		this.ready = this.relocate();
 		void this.loadIndex();
+	}
+
+	/**
+	 * Use the folder the settings say, moving the saved images there when it
+	 * changed: the "Card image folder" setting, the vault's attachment folder,
+	 * or images saved in the plugin folder before that setting existed.
+	 */
+	relocate(): Promise<void> {
+		this.ready = this.ready.then(() => this.move()).catch(() => {});
+		return this.ready;
 	}
 
 	/** Point `img` at the cached copy of `url`, downloading it first when needed. */
@@ -141,6 +159,7 @@ export class ImageCache {
 	}
 
 	async stats(): Promise<{ files: number; bytes: number }> {
+		await this.ready;
 		const adapter = this.plugin?.app.vault.adapter;
 		const dir = this.dir();
 		if (!adapter || !dir || !(await adapter.exists(dir))) return { files: 0, bytes: 0 };
@@ -151,24 +170,16 @@ export class ImageCache {
 	}
 
 	async clear(): Promise<void> {
+		await this.ready;
 		this.generation++;
 		const adapter = this.plugin?.app.vault.adapter;
 		const dir = this.dir();
 		if (adapter && dir && (await adapter.exists(dir))) await adapter.rmdir(dir, true);
-		const shown = new Map<string, string>();
-		for (const [name, resource] of this.urls) {
-			const url = this.sources.get(name);
-			if (url) shown.set(resource, url);
-		}
+		const shown = this.shown();
 		this.reset();
 		this.index = Promise.resolve();
 		// Images on screen point at files that are gone: load them again (downloaded again, or the original when saving is off).
-		for (const win of this.windows) {
-			win.document.querySelectorAll("img").forEach((img) => {
-				const url = shown.get(img.getAttribute("src") ?? "");
-				if (url) this.setSrc(img, url);
-			});
-		}
+		this.reload(shown);
 	}
 
 	/** Stop all work: called when the plugin unloads. */
@@ -188,6 +199,75 @@ export class ImageCache {
 	/** Downloads are allowed: not with the "Bundled" (offline) data source. */
 	get online(): boolean {
 		return this.plugin?.settings.dataSource !== "bundled";
+	}
+
+	/** The images on screen that show a saved file: resource URL → original URL. */
+	private shown(): Map<string, string> {
+		const shown = new Map<string, string>();
+		for (const [name, resource] of this.urls) {
+			const url = this.sources.get(name);
+			if (url) shown.set(resource, url);
+		}
+		return shown;
+	}
+
+	private reload(shown: Map<string, string>): void {
+		for (const win of this.windows) {
+			win.document.querySelectorAll("img").forEach((img) => {
+				const url = shown.get(img.getAttribute("src") ?? "");
+				if (url) this.setSrc(img, url);
+			});
+		}
+	}
+
+	private async move(): Promise<void> {
+		const plugin = this.plugin;
+		if (!plugin) return;
+		const to = this.targetDir(plugin);
+		// Before the setting existed, images were always in the plugin folder.
+		const from = plugin.settings.imageCacheDir || this.pluginDir(plugin);
+		if (from !== to) {
+			// Downloads still writing to the old folder are dropped; images keep showing from it until the move is done.
+			this.generation++;
+			await this.moveFiles(from, to);
+			const shown = this.shown();
+			this.folder = to;
+			this.reset();
+			this.reload(shown);
+		} else this.folder = to;
+		if (plugin.settings.imageCacheDir !== to) {
+			plugin.settings.imageCacheDir = to;
+			await plugin.saveSettings();
+		}
+	}
+
+	/** Move the files of `from` into `to` (a file already there wins), then remove `from`. */
+	private async moveFiles(from: string, to: string): Promise<void> {
+		const adapter = this.plugin?.app.vault.adapter;
+		if (!adapter || !(await adapter.exists(from))) return;
+		const { files } = await adapter.list(from);
+		if (files.length && !(await adapter.exists(to))) await adapter.mkdir(to);
+		for (const file of files) {
+			const target = `${to}/${file.slice(file.lastIndexOf("/") + 1)}`;
+			try {
+				if (await adapter.exists(target)) await adapter.remove(file);
+				else await adapter.rename(file, target);
+			} catch {
+				// Left behind: downloaded again when it's needed.
+			}
+		}
+		await adapter.rmdir(from, true).catch(() => {});
+	}
+
+	private pluginDir(p: ChronoVaultPlugin): string {
+		const base = p.manifest.dir ?? `${p.app.vault.configDir}/plugins/${p.manifest.id}`;
+		return `${base}/${CACHE_DIR}`;
+	}
+
+	private targetDir(p: ChronoVaultPlugin): string {
+		if (p.settings.imageFolder === "plugin") return this.pluginDir(p);
+		const parent = attachmentFolder(p);
+		return normalizePath(parent ? `${parent}/${VAULT_DIR}` : VAULT_DIR);
 	}
 
 	private track(win: Window | undefined): void {
@@ -214,7 +294,7 @@ export class ImageCache {
 	}
 
 	private loadIndex(): Promise<void> {
-		return (this.index ??= this.readIndex());
+		return (this.index ??= this.ready.then(() => this.readIndex()));
 	}
 
 	private async readIndex(): Promise<void> {
@@ -233,10 +313,7 @@ export class ImageCache {
 	}
 
 	private dir(): string | null {
-		const p = this.plugin;
-		if (!p) return null;
-		const base = p.manifest.dir ?? `${p.app.vault.configDir}/plugins/${p.manifest.id}`;
-		return `${base}/${CACHE_DIR}`;
+		return this.plugin ? this.folder : null;
 	}
 
 	/** One flat file per URL, e.g. `cdn.playchrono.com_latest_en_us_img_cards_full_set_1_3-w400.webp`. */
@@ -402,6 +479,22 @@ export class ImageCache {
 			else this.queue.push(run);
 		});
 	}
+}
+
+/**
+ * The vault's attachment folder ("Files and links" → "Default location for new
+ * attachments"), "" for the vault root. "Same folder as current file" and
+ * "In subfolder under current folder" are taken from the notes folder: images
+ * aren't attached to one note.
+ */
+function attachmentFolder(p: ChronoVaultPlugin): string {
+	// Not in the API's types, but every desktop and mobile version has it.
+	const setting = (p.app.vault as unknown as { getConfig?: (key: string) => unknown }).getConfig?.("attachmentFolderPath");
+	const value = typeof setting === "string" ? setting.trim() : "";
+	if (value.startsWith("./")) {
+		return [p.settings.notesFolder.trim(), value.slice(2).trim()].filter(Boolean).join("/");
+	}
+	return value === "/" ? "" : value.replace(/^\/+|\/+$/g, "");
 }
 
 export const imageCache = new ImageCache();
