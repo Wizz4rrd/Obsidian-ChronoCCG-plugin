@@ -1,0 +1,47 @@
+filters:
+  and:
+    - file.inFolder("ChronoCCG/Decks")
+    - type == "chrono-deck"
+properties:
+  deck:
+    displayName: Deck
+  status:
+    displayName: Status
+  syndicates:
+    displayName: Syndicates
+  divers:
+    displayName: Divers
+  created:
+    displayName: Created
+  code:
+    displayName: Deck code
+views:
+  - type: chronovault-decks
+    name: Decks
+    order:
+      - file.name
+      - status
+      - syndicates
+      - divers
+      - created
+    sort:
+      - property: created
+        direction: DESC
+    cardProperties:
+      - note.divers
+    syndicateProperty: note.syndicates
+  - type: table
+    name: By status
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - file.name
+      - syndicates
+      - divers
+      - created
+  - type: table
+    name: Deck codes
+    order:
+      - file.name
+      - code

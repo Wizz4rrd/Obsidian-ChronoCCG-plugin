@@ -2,14 +2,20 @@
 
 ChronoVault is an Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wanted to keep my decks and tournament reports in my vault, with real cards in them instead of plain text, so I made this.
 
+![The deck builder](docs/screenshots/deck-builder.png)
+
 If you cloned the repo, you can try it in the example vault: open `example-vault/` in Obsidian and start with `ChronoCCG/Welcome.md`.
+
+## Contact me
+
+You can contact me on the Chrono Discord or by DM: Wizz4rrd#5948
 
 ## What it does
 
 - Inline card references: write `` `chrono:Hush Now` `` and you get the card name in its syndicate colour, with a preview on hover. Click it to open the card. Works in Reading view and Live Preview. For Agents that immortalize, the preview and the card window show both sides.
 - Card images: put card names in a `chrono-card` block, one per line. Add a line with `full` if you want them big.
 - Decks: a `chrono-deck` block takes a deck code, a simple list or YAML (examples below). It checks the deck against the [rules](https://playchrono.com/rules) (2 Divers, 40 cards, max 3 copies, only your Divers' syndicates), shows the energy curve and the type/syndicate split, and has buttons to copy the code, export the deck or open it in the builder.
-- Deck builder: opens in its own tab. Filter the card pool (you can show only the cards your Divers can play), add/remove cards, and save the deck back to the note it came from or to a new note. Saving a deck note also updates its properties and adds what changed to its "Changelog" section.
+- Deck builder: opens in its own tab. Filter the card pool (you can show only the cards your Divers can play), add/remove cards, and save the deck back to the note it came from or to a new note. Saving a deck note also updates its properties and adds what changed to its "Changelog" section. While building you can go past the limits (more than 40 cards, more than 3 copies, cards outside your Divers' syndicates): the deck shows as not legal, and saving asks first.
 - Card browser: a page or a sidebar pane with filters for cost (click one or more, 0 to 7+), syndicate, spell speed, rarity, type, keyword and set. The deck builder has the same cost filter. Click a card to insert it, add it to the builder or see the details.
 - Match tracker: log your games (deck, the opponent's syndicates, optionally archetype, patch, the opponent's deck code and a note) and see your win rates per deck, per syndicate and per syndicate pair, a matchup grid, and a chart per week. Games are saved in a note, as a table you can also edit by hand.
 - Templates for deck notes and tournament reports (with several decks and Bo1/Bo3/Bo5 rounds). The frontmatter works with Dataview. You can replace them with your own.
@@ -17,6 +23,13 @@ If you cloned the repo, you can try it in the example vault: open `example-vault
 Deck codes work both ways with the game and with deck sites that use the same format.
 
 If a card can't be found (typo, or a card that isn't in the data yet), it shows up as a grey "?" card instead of disappearing.
+
+| | |
+| --- | --- |
+| ![A deck block in a deck note](docs/screenshots/deck-block.png) | ![The same deck block with card images](docs/screenshots/deck-block-cards.png) |
+| A `chrono-deck` block in a deck note | The same block with card images |
+| ![Hover preview of an inline card reference](docs/screenshots/card-preview.png) | ![The card browser](docs/screenshots/card-browser.png) |
+| Hover preview of an Agent that immortalizes | The card browser |
 
 ### Syntax
 
@@ -79,22 +92,28 @@ Saving a deck note from the deck builder also adds a line to its "Changelog" sec
 
 ### Match tracker
 
-Games go in one note, `ChronoCCG/Match log.md` by default (you can change it in the settings), as a table with a row per game: date, patch, deck (a link to the deck note), result (W or L), the opponent's syndicates, archetype, the opponent's deck code and a note. You can edit it by hand, and columns are found by their name, so you can reorder them or add your own.
+![The match tracker](docs/screenshots/match-tracker.png)
+
+Games go in one note, `ChronoCCG/Match log.md` by default (you can change it in the settings), as a table with a row per game: date, patch, deck (a link to the deck note), result (W or L), the opponent's syndicates, archetype, the opponent's deck code and a note. You can edit it by hand, and columns are found by their name, so you can reorder them or add your own. Deck links show the deck's name (`[[Decks/Egg Novice|Egg Novice]]`), you can turn that off in the settings ("Deck names in the match log"). In the note, `` `chrono:Hush Now` `` works like anywhere else, and the tracker's game list shows it as a card reference too.
 
 In the tracker:
 - Filters: period, patch, deck, and "Vs": pick one syndicate for every game against it (whatever the other one was), or two for that pair.
 - With all decks: your decks, the matchup grid (your decks × the six syndicates, plus all decks together), and your record against each syndicate and each syndicate pair. Click a deck, a row or a cell to narrow it down.
 - With one deck: that deck's page.
 - The archetype is free text. It suggests the archetypes you used before, and typing one in another case ("aggro") keeps the spelling you used first, so it isn't counted twice.
-- The patch is filled in with the last one you logged. Pasting the opponent's deck code sets their syndicates from the Divers, and the game list has a button to open it in the deck builder (no note is created).
+- The deck is the one of your last game, and the patch the last one you logged. Pasting the opponent's deck code sets their syndicates from the Divers, and the game list has a button to open it in the deck builder (no note is created).
+
+![The breakdowns and the game list](docs/screenshots/match-tracker-games.png)
 
 Colours in the matchup grid: red is a win rate under 45%, grey is 45–55% (about even), green is over 55%. The further from 50%, the stronger the colour. A faded cell (or a faded row in the tables) has fewer than 3 games, so the win rate doesn't say much yet. The win-rate bars go red under 40%, light red 40–50%, light green 50–60% and green from 60%.
 
 A `chrono-matches` block (with nothing in it) shows a deck's results in its note: win rate, record, last 10 games and the record against each syndicate pair (most played first), with buttons to log a game and open the tracker. New deck notes have one in their "Results" section. Anywhere else (e.g. the match log) it shows every game.
 
+![A deck note with its Results section](docs/screenshots/deck-note.png)
+
 ### Deck notes in a base
 
-Deck notes work well in a [base](https://obsidian.md/help/bases) (filter on `type == "chrono-deck"`). The plugin adds a "ChronoVault decks" view type to bases: a table where the Divers show as inline card references (coloured, with the hover preview; click to open the card) and the syndicates as their icons (saved, so they also show offline). Pick it in the base's view menu. In the view options, "Card properties" sets which properties hold card names (`divers` by default) and "Syndicates property" which one holds syndicates. Columns, sorting, filters and grouping are set like in a normal table.
+Deck notes work well in a [base](https://obsidian.md/help/bases) (filter on `type == "chrono-deck"`). The plugin adds a "ChronoVault decks" view type to bases: a table where the Divers show as inline card references (coloured, with the hover preview; click to open the card) and the syndicates as their icons (saved, so they also show offline). Pick it in the base's view menu. In the view options, "Card properties" sets which properties hold card names (`divers` by default) and "Syndicates property" which one holds syndicates. Columns, sorting, filters and grouping are set like in a normal table. The example vault has one: `ChronoCCG/Decks/Decks.base`.
 
 ### Limitations
 

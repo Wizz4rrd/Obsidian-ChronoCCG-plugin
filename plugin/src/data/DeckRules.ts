@@ -118,6 +118,21 @@ export function validateDeck(deck: Deck, cards: CardLookup): DeckIssue[] {
 	return issues;
 }
 
+/**
+ * The limits the deck builder lets you go past while building (more than 40
+ * cards, more than 3 copies), as messages; empty when the deck stays within them.
+ * Saving asks first when there are any.
+ */
+export function exceededLimits(deck: Deck, cards: CardLookup): string[] {
+	const out: string[] = [];
+	const main = deck.entries.reduce((n, e) => n + e.count, 0);
+	if (main > MAIN_DECK_SIZE) out.push(`The main deck has ${main} cards (max ${MAIN_DECK_SIZE}).`);
+	for (const e of deck.entries) {
+		if (e.count > MAX_COPIES) out.push(`${cards.getById(e.id)?.name ?? `Card ${e.id}`}: ${e.count} copies (max ${MAX_COPIES}).`);
+	}
+	return out;
+}
+
 export function isDeckLegal(deck: Deck, cards: CardLookup): boolean {
 	return !validateDeck(deck, cards).some((i) => i.level === "error");
 }

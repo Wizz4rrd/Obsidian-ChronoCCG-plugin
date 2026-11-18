@@ -60,6 +60,20 @@ function renderCardRef(plugin: ChronoVaultPlugin, text: string): HTMLElement {
 	return span;
 }
 
+/**
+ * Plain text (e.g. a game's note) into `parent`, with its `chrono:` inline
+ * code as card references and other inline code as code.
+ */
+export function renderTextWithCardRefs(plugin: ChronoVaultPlugin, parent: HTMLElement, text: string): void {
+	text.split(/(`[^`]+`)/).forEach((part, i) => {
+		// Odd parts are the backticked ones.
+		if (i % 2 === 0) return void (part && parent.appendText(part));
+		const inner = part.slice(1, -1);
+		if (isCardRef(inner)) parent.appendChild(renderCardRef(plugin, inner));
+		else parent.createEl("code", { text: inner });
+	});
+}
+
 function isCardRef(text: string): boolean {
 	return text.trim().toLowerCase().startsWith(INLINE_PREFIX);
 }

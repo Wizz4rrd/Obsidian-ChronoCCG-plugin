@@ -58,6 +58,7 @@ Click the **swords** ribbon icon, or run **Open deck builder**.
 - "Only cards playable with my Divers" filters the pool to the Divers' syndicates.
 - **Save** writes back to the note the deck came from, or creates a new deck note under `ChronoCCG/Decks`.
 - **Import deck code**, **Copy deck code** and **Export** are in the header.
+- You can go past 40 cards or 3 copies while building (the deck shows as not legal). Saving a deck like that asks first.
 
 ## 5. Card browser
 The **layers** ribbon icon opens a searchable side panel with filters (cost, syndicate, spell speed, rarity, type, keyword, set). Click a card to insert it, add it to the builder, or see details.
@@ -66,6 +67,7 @@ The **layers** ribbon icon opens a searchable side panel with filters (cost, syn
 - **New deck note** → `ChronoCCG/Decks`
 - **New tournament report** → `ChronoCCG/Tournaments` (copies the decklist from the active note) — see [[2026-11-02 Weekly Dive]]
 - **Write default templates to the template folder** gives you editable copies of the templates.
+- [[Decks.base]] lists the deck notes in a base, with the **ChronoVault decks** view: Divers as card references, syndicates as icons.
 
 ## 7. Match tracker
 Click the **trophy** ribbon icon, or run **Open match tracker**.

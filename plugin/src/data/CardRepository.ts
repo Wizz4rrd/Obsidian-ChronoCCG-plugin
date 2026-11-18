@@ -148,7 +148,8 @@ export class CardRepository {
 	/** Cards matching `query`, cheapest first (then by name), at most `limit` of them. */
 	search(query: CardQuery, limit = 200): Card[] {
 		const raw = query.text?.toLowerCase().trim() ?? "";
-		const tokens = raw.split(/\s+/).filter(Boolean);
+		// British spelling ("immortalise", "immortalised") finds the same cards.
+		const tokens = raw.split(/\s+/).filter(Boolean).map((t) => t.replace(/immortalis/g, "immortaliz"));
 		const out: Card[] = [];
 		for (const c of this.cards) {
 			if (query.syndicates?.length && !query.syndicates.some((s) => c.syndicates.includes(s))) continue;
@@ -175,11 +176,20 @@ function byCostThenName(a: Card, b: Card): number {
 	return a.cost - b.cost || a.name.localeCompare(b.name);
 }
 
+/**
+ * Searching "immortalize" finds the cards whose effect is about it ("When I
+ * Immortalize", "Revive an Immortalized ally"), not every Agent:
+ * - almost every base Agent has an "Immortalize: <condition>" line, so that
+ *   label is left out (the condition stays searchable);
+ * - the immortalized sides are searched as "Agent" (the Type filter still finds them).
+ */
+const IMMORTALIZE_LABEL = /(^|[.\n]\s*)immortali[sz]e:/gi;
+
 function searchHaystack(c: Card): string {
 	const pieces: string[] = [
 		c.name,
-		c.text,
-		c.type,
+		c.text.replace(IMMORTALIZE_LABEL, "$1"),
+		isImmortalized(c) ? "Agent" : c.type,
 		c.rarity,
 		c.set ?? "",
 		c.flavor ?? "",
