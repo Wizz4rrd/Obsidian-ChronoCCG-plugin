@@ -1,3 +1,5 @@
+import type ChronoVaultPlugin from "../../main";
+import { renderTextWithCardRefs } from "../markdown/InlineCardRef";
 import { currentStreak, formatRate, formatRecord, Match, MatchRecord, MatchResult, pairingLabel, SMALL_SAMPLE, tally, weeklyRecords, winRate } from "../data/matches";
 import { Syndicate, SYNDICATES } from "../data/types";
 import { renderSyndicateIcon } from "../ui/SyndicateIcon";
@@ -140,8 +142,8 @@ export function renderKpis(parent: HTMLElement, matches: Match[]): HTMLElement {
 	return el;
 }
 
-/** One game: result, date, deck (when given), opponent, archetype, patch and note. */
-export function renderGameRow(parent: HTMLElement, m: Match, deck?: string): HTMLElement {
+/** One game: result, date, deck (when given), opponent, archetype, patch and note (its `chrono:` refs as card references). */
+export function renderGameRow(plugin: ChronoVaultPlugin, parent: HTMLElement, m: Match, deck?: string): HTMLElement {
 	const row = parent.createDiv({ cls: "chrono-match-game" });
 	renderResultChip(row, m.result);
 	row.createSpan({ cls: "chrono-match-date", text: m.date || "–" });
@@ -150,7 +152,7 @@ export function renderGameRow(parent: HTMLElement, m: Match, deck?: string): HTM
 	renderPairing(row, m.opponent);
 	if (m.archetype) row.createSpan({ cls: "chrono-match-tag", text: m.archetype });
 	if (m.patch) row.createSpan({ cls: "chrono-match-tag", text: `patch ${m.patch}` });
-	if (m.note) row.createSpan({ cls: "chrono-match-note", text: m.note });
+	if (m.note) renderTextWithCardRefs(plugin, row.createSpan({ cls: "chrono-match-note" }), m.note);
 	return row;
 }
 

@@ -34,6 +34,8 @@ export interface ChronoSettings {
 	deckChangelog: boolean;
 	/** Note the match tracker keeps games in ("" = "Match log.md" in the notes folder). */
 	matchLog: string;
+	/** Deck links in the match log show the deck's name ("[[Decks/Egg Novice|Egg Novice]]"). */
+	matchLogDeckAlias: boolean;
 	cardBrowserPlacement: CardBrowserPlacement;
 	/** Height of the card browser's filters, in % of the pane (the rest is the cards). */
 	browserFiltersPercent: number;
@@ -54,13 +56,14 @@ export const DEFAULT_SETTINGS: ChronoSettings = {
 	templateFolder: "",
 	deckChangelog: true,
 	matchLog: "",
+	matchLogDeckAlias: true,
 	cardBrowserPlacement: "tab",
 	browserFiltersPercent: 42,
 	builderDraft: { deck: emptyDeck() },
 };
 
 /** Keys of {@link ChronoSettings} bound to a declarative control. */
-type ControlKey = "cardBrowserPlacement" | "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog" | "matchLog";
+type ControlKey = "cardBrowserPlacement" | "dataSource" | "customDataUrl" | "autoRefreshDays" | "cardImageStyle" | "deckView" | "hoverPreviews" | "notesFolder" | "templateFolder" | "deckChangelog" | "matchLog" | "matchLogDeckAlias";
 
 export class ChronoSettingsTab extends PluginSettingTab {
 	/** Rows that show something derived from the settings (e.g. the images to download), redrawn when a setting changes. */
@@ -210,6 +213,11 @@ export class ChronoSettingsTab extends PluginSettingTab {
 						name: "Match log",
 						desc: 'Note where the match tracker saves your games, as a table you can also edit by hand. Empty = "Match log.md" in the notes folder. Renaming this setting doesn\'t move existing games.',
 						control: { type: "text", key: "matchLog", placeholder: "ChronoCCG/Match log.md" },
+					},
+					{
+						name: "Deck names in the match log",
+						desc: 'Write deck links with the deck\'s name, so the table shows "Egg Novice" instead of "Decks/Egg Novice". Games already in the log keep their links until you edit them.',
+						control: { type: "toggle", key: "matchLogDeckAlias" },
 					},
 				],
 			},
