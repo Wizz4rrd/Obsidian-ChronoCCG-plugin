@@ -66,6 +66,7 @@ The **layers** ribbon icon opens a searchable side panel with filters (cost, syn
 - **New deck note** → `ChronoCCG/Decks`
 - **New tournament report** → `ChronoCCG/Tournaments` (copies the decklist from the active note) — see [[2026-11-02 Weekly Dive]]
 - **Write default templates to the template folder** gives you editable copies of the templates.
+- [[Decks.base]] lists the deck notes in a base, with the **ChronoVault decks** view: Divers as card references, syndicates as icons.
 
 ## 7. Match tracker
 Click the **trophy** ribbon icon, or run **Open match tracker**.
