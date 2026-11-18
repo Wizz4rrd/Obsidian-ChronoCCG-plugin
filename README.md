@@ -6,6 +6,10 @@ ChronoVault is an Obsidian plugin for [ChronoCCG](https://playchrono.com/). I wa
 
 If you cloned the repo, you can try it in the example vault: open `example-vault/` in Obsidian and start with `ChronoCCG/Welcome.md`.
 
+## Contact me
+
+You can contact me on the Chrono Discord or by DM: Wizz4rrd#5948
+
 ## What it does
 
 - Inline card references: write `` `chrono:Hush Now` `` and you get the card name in its syndicate colour, with a preview on hover. Click it to open the card. Works in Reading view and Live Preview. For Agents that immortalize, the preview and the card window show both sides.
