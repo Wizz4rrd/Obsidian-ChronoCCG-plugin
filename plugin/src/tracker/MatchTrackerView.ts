@@ -96,7 +96,7 @@ export class MatchTrackerView extends ItemView {
 		entry.createEl("h3", { text: "Log a game" });
 		renderMatchForm(entry, {
 			decks,
-			deck: this.app.vault.getFileByPath(this.deckFilter) ?? this.formDeck,
+			deck: this.app.vault.getFileByPath(this.deckFilter) ?? this.formDeck ?? this.plugin.matchLog.lastDeck(all),
 			archetypes: uniqueArchetypes(all.map((g) => g.match.archetype)),
 			patches,
 			codeSyndicates: (code) => this.plugin.codeSyndicates(code),
@@ -367,7 +367,7 @@ export class MatchTrackerView extends ItemView {
 		const card = this.card(parent, shown.length < games.length ? `Games (last ${shown.length} of ${games.length})` : `Games (${games.length})`);
 		const list = card.createDiv({ cls: "chrono-match-list" });
 		for (const g of shown.slice().reverse()) {
-			const row = renderGameRow(list, g.match, this.deckFilter ? undefined : g.deckName);
+			const row = renderGameRow(this.plugin, list, g.match, this.deckFilter ? undefined : g.deckName);
 			const actions = row.createDiv({ cls: "chrono-match-actions" });
 			if (g.match.opponentDeck) {
 				const opp = actions.createEl("button", { cls: "clickable-icon", attr: { "aria-label": "Open the opponent's deck in the deck builder" } });

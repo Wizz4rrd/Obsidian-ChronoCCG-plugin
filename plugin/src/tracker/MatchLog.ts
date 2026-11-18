@@ -56,6 +56,16 @@ export class MatchLog {
 		return { ...this.plugin.lastMatch, patch };
 	}
 
+	/** The deck the form starts with for a new game: the deck of the newest game whose note is still in the deck picker. */
+	lastDeck(games: LoggedGame[]): TFile | null {
+		const decks = this.plugin.deckNotes();
+		for (let i = games.length - 1; i >= 0; i--) {
+			const file = games[i].file;
+			if (file && decks.includes(file)) return file;
+		}
+		return null;
+	}
+
 	async add(deck: TFile, match: Match): Promise<void> {
 		const file = await this.ensure();
 		await this.plugin.app.vault.process(file, (text) => {
@@ -95,9 +105,14 @@ export class MatchLog {
 		if (!found) new Notice("ChronoVault: that game is no longer in the match log (was it edited by hand?).");
 	}
 
-	/** A link to the deck note, written the way the vault's "Files and links" settings say (wikilink or Markdown, path format). */
+	/**
+	 * A link to the deck note, written the way the vault's "Files and links" settings say (wikilink or Markdown, path format).
+	 * With "Deck names in the match log", a link with a path shows the deck's name: "[[Decks/Egg Novice|Egg Novice]]".
+	 */
 	private deckCell(deck: TFile): string {
-		return this.plugin.app.fileManager.generateMarkdownLink(deck, this.path);
+		const link = this.plugin.app.fileManager.generateMarkdownLink(deck, this.path);
+		if (!this.plugin.settings.matchLogDeckAlias || deckLinkTarget(link) === deck.basename) return link;
+		return this.plugin.app.fileManager.generateMarkdownLink(deck, this.path, undefined, deck.basename);
 	}
 
 	private async ensure(): Promise<TFile> {

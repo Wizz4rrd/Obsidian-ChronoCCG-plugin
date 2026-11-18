@@ -49,6 +49,6 @@ Games logged with the ChronoVault match tracker, one row per game. You can edit 
 | 2026-11-11 | 0.11.1 | [[Somnus Revive]] | W | Lifeblood Splintergleam |  |  |  |
 | 2026-11-13 | 0.11.1 | [[Egg Novice]] | W | Sungrace Silence |  |  | close game |
 | 2026-11-13 | 0.11.1 | [[Somnus Revive]] | L | Silence Singularity | Tempo |  | kept a greedy hand |
-| 2026-11-14 | 0.11.1 | [[Somnus Revive]] | L | Sungrace Silence | Aggro |  | lost to early pressure |
+| 2026-11-14 | 0.11.1 | [[ChronoCCG/Decks/Somnus Revive\|Somnus Revive]] | L | Sungrace Silence | Aggro |  | didn't play around `chrono:Spirit's Lament` |
 | 2026-11-14 | 0.11.1 | [[Somnus Revive]] | L | Singularity Phasetide | Control |  | lost to early pressure |
 | 2026-11-14 | 0.11.1 | [[Somnus Revive]] | W | Sungrace |  |  |  |

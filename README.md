@@ -94,14 +94,14 @@ Saving a deck note from the deck builder also adds a line to its "Changelog" sec
 
 ![The match tracker](docs/screenshots/match-tracker.png)
 
-Games go in one note, `ChronoCCG/Match log.md` by default (you can change it in the settings), as a table with a row per game: date, patch, deck (a link to the deck note), result (W or L), the opponent's syndicates, archetype, the opponent's deck code and a note. You can edit it by hand, and columns are found by their name, so you can reorder them or add your own.
+Games go in one note, `ChronoCCG/Match log.md` by default (you can change it in the settings), as a table with a row per game: date, patch, deck (a link to the deck note), result (W or L), the opponent's syndicates, archetype, the opponent's deck code and a note. You can edit it by hand, and columns are found by their name, so you can reorder them or add your own. Deck links show the deck's name (`[[Decks/Egg Novice|Egg Novice]]`), you can turn that off in the settings ("Deck names in the match log"). In the note, `` `chrono:Hush Now` `` works like anywhere else, and the tracker's game list shows it as a card reference too.
 
 In the tracker:
 - Filters: period, patch, deck, and "Vs": pick one syndicate for every game against it (whatever the other one was), or two for that pair.
 - With all decks: your decks, the matchup grid (your decks × the six syndicates, plus all decks together), and your record against each syndicate and each syndicate pair. Click a deck, a row or a cell to narrow it down.
 - With one deck: that deck's page.
 - The archetype is free text. It suggests the archetypes you used before, and typing one in another case ("aggro") keeps the spelling you used first, so it isn't counted twice.
-- The patch is filled in with the last one you logged. Pasting the opponent's deck code sets their syndicates from the Divers, and the game list has a button to open it in the deck builder (no note is created).
+- The deck is the one of your last game, and the patch the last one you logged. Pasting the opponent's deck code sets their syndicates from the Divers, and the game list has a button to open it in the deck builder (no note is created).
 
 ![The breakdowns and the game list](docs/screenshots/match-tracker-games.png)
 

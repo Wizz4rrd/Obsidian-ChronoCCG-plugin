@@ -23,7 +23,7 @@ export class RecordMatchModal extends Modal {
 		const { games } = await this.plugin.matchLog.games();
 		const form = renderMatchForm(this.contentEl, {
 			decks: this.plugin.deckNotes(),
-			deck: this.editing?.file ?? this.deck,
+			deck: this.editing?.file ?? this.deck ?? this.plugin.matchLog.lastDeck(games),
 			archetypes: uniqueArchetypes(games.map((g) => g.match.archetype)),
 			patches: uniquePatches(games.map((g) => g.match.patch)),
 			codeSyndicates: (code) => this.plugin.codeSyndicates(code),
